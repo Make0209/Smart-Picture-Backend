@@ -1,0 +1,37 @@
+spring:
+#  数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3307/smart_picture
+    username: root
+    password: 1234
+#  Servlet配置
+server:
+  servlet:
+    context-path: /api
+# Mybatis-Plus配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: false
+  global-config:
+    db-config:
+      logic-delete-field: isDelete
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+# springdoc-openapi项目配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    version: v1.0
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'SmartPicture'
+      paths-to-match: '/**'
+      packages-to-scan: com.hbpu.smartpicture.controller
+knife4j:
+  enable: true
+  production: false
