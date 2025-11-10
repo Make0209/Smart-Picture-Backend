@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "主控制接口")
+@Tag(name = "MainController")
 @RestController
 @RequestMapping("/")
 public class MainController {
