@@ -22,4 +22,6 @@ public class MainController {
     public BaseResponse<String> health() {
         return ResultUtils.success("ok！");
     }
+
+
 }

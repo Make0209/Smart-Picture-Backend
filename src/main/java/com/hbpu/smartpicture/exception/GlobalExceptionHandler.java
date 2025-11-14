@@ -3,6 +3,7 @@ package com.hbpu.smartpicture.exception;
 import com.hbpu.smartpicture.common.BaseResponse;
 import com.hbpu.smartpicture.common.ResultUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -35,4 +36,15 @@ public class GlobalExceptionHandler {
         log.error("RuntimeException:", e);
         return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误！");
     }
+
+    /**
+     * 捕获前端发送不允许的类型的异常
+     * @param ex 不支持的类型的异常
+     * @return 返回异常错误信息
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public BaseResponse<?> handleMediaTypeException(HttpMediaTypeNotSupportedException ex) {
+        return ResultUtils.error(ErrorCode.FORBIDDEN_ERROR,("不支持的请求类型：" + ex.getContentType()));
+    }
+
 }
