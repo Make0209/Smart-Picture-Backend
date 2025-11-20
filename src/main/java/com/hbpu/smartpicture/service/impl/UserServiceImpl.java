@@ -1,7 +1,6 @@
 package com.hbpu.smartpicture.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.crypto.digest.DigestUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hbpu.smartpicture.exception.BusinessException;
@@ -10,13 +9,20 @@ import com.hbpu.smartpicture.exception.ThrowUtils;
 import com.hbpu.smartpicture.mapper.UserMapper;
 import com.hbpu.smartpicture.model.dto.UserRegisterDTO;
 import com.hbpu.smartpicture.model.enums.UserRoleEnum;
-import com.hbpu.smartpicture.service.UserService;
 import com.hbpu.smartpicture.model.pojo.User;
+import com.hbpu.smartpicture.model.vo.UserLoginVO;
+import com.hbpu.smartpicture.security.JwtUtil;
+import com.hbpu.smartpicture.service.UserService;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RMapCache;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
-import java.nio.charset.Charset;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author 马可
@@ -24,8 +30,15 @@ import java.nio.charset.Charset;
  * @createDate 2025-11-10 17:42:36
  */
 @Service
+@Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService {
+
+    private final RedissonClient redisson;
+
+    public UserServiceImpl(RedissonClient redisson) {
+        this.redisson = redisson;
+    }
 
     /**
      * 用户注册方法具体实现
@@ -80,6 +93,118 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         //主键回填给user对象
         return user.getId();
     }
+
+    /**
+     * 用户登录方法实现类
+     * @param userAccount 用户账号
+     * @param userPassword 用户密码
+     * @return
+     */
+    @Override
+    public UserLoginVO userLogin(String userAccount, String userPassword) {
+        //验证参数是否为空
+        ThrowUtils.throwIf(
+                StrUtil.hasBlank(userAccount, userPassword),
+                new BusinessException(ErrorCode.PARAMS_ERROR)
+        );
+        //判断用户账号是否过短
+        ThrowUtils.throwIf(
+                userAccount.length() < 4,
+                new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短")
+        );
+        //判断用户的密码格式是否正确
+        ThrowUtils.throwIf(
+                userPassword.length() < 8,
+                new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度过短！")
+        );
+        //获取加密后的密码
+        String encryptedPassword = getEncryptedPassword(userPassword);
+        //从数据库中查询用户
+        LambdaQueryWrapper<User> userLambdaQueryWrapper = new LambdaQueryWrapper<>();
+        userLambdaQueryWrapper.eq(User::getUserAccount, userAccount)
+                              .eq(User::getUserPassword, encryptedPassword);
+        User user = this.baseMapper.selectOne(userLambdaQueryWrapper);
+        if (user == null) {
+            log.error("User not found !");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号或密码错误！");
+        }
+        //将用户数据映射为请求包装类
+        UserLoginVO userLoginVO = new UserLoginVO();
+        BeanUtils.copyProperties(user, userLoginVO);
+        //为当前用户生成唯一token
+        String token = JwtUtil.generateJwt(userAccount);
+        //将token放入响应体中
+        userLoginVO.setToken(token);
+        // 使用用户id拼接来组成独立的每个key
+        String redisKey = String.format("smart-picture:user:login:token:%s", userLoginVO.getUserAccount());
+        // 创建一个Map
+        RMapCache<Object, Object> mapCache = redisson.getMapCache(redisKey);
+        // 设置其值
+        mapCache.put("token", token, 30, TimeUnit.MINUTES);
+        mapCache.put("object", user, 30, TimeUnit.MINUTES);
+
+        return  userLoginVO;
+    }
+
+    /**
+     * 查询当前用户
+     *
+     * @param request 用户请求
+     * @return 用户对象
+     */
+    @Override
+    public User getCurrentUser(HttpServletRequest request) {
+        // 获取请求头中的Authorization，因为它一般存储着token
+        String authHeader = request.getHeader("Authorization");
+        // 判断是否为空，且其中内容是否正确
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            // 去掉 "Bearer " 前缀
+            String token = authHeader.substring(7);
+            // 解析token
+            Claims claims = JwtUtil.parseToken(token);
+            // 使用token中负载的主题来拼接redis的key
+            String redisKey = String.format("smart-picture:user:login:token:%s", claims.getSubject());
+            // 通过key来获取相应的map和其中存储的对象
+            User user = (User) redisson.getMapCache(redisKey).get("object");
+            // 判断所获取的对象是否存在
+            ThrowUtils.throwIf(user == null, new BusinessException(ErrorCode.NOT_LOGIN_ERROR));
+            // 存在则返回处理后的对象
+            return user;
+        } else {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "获取token时出现异常");
+        }
+    }
+
+    /**
+     * 用户注销
+     *
+     * @param request 用户请求
+     * @return 注销成功返回true
+     */
+    @Override
+    public Boolean loginOut(HttpServletRequest request) {
+        // 获取请求头中的Authorization，因为它一般存储着token
+        String authHeader = request.getHeader("Authorization");
+        // 判断是否为空，且其中内容是否正确
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            // 去掉 "Bearer " 前缀
+            String token = authHeader.substring(7);
+            // 解析token
+            Claims claims = JwtUtil.parseToken(token);
+            // 使用token中负载的主题来拼接redis的key
+            String redisKey = String.format("smart-picture:user:login:token:%s", claims.getSubject());
+            // 通过key来获取相应的map并进行删除
+            boolean delete = redisson.getMapCache(redisKey).delete();
+            if (!delete) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注销失败！");
+            }
+            return true;
+        } else {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "获取token时出现错误！");
+        }
+
+    }
+
 
     /**
      * 获取加密后的密码

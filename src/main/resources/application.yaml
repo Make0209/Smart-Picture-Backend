@@ -5,10 +5,18 @@ spring:
     url: jdbc:mysql://localhost:3307/smart_picture
     username: root
     password: 1234
+# Redis配置
+  data:
+    redis:
+      port: 6379
+      password: 1234
+      host: localhost
+      database: 0
 #  Servlet配置
 server:
   servlet:
     context-path: /api
+
 # Mybatis-Plus配置
 mybatis-plus:
   configuration:
@@ -35,3 +43,5 @@ springdoc:
 knife4j:
   enable: true
   production: false
+
+

@@ -106,6 +106,51 @@
             <artifactId>spring-boot-starter-aop</artifactId>
             <version>3.5.7</version>
         </dependency>
+
+        <!-- ========================== 缓存和会话管理 ========================== -->
+        <!-- Spring Boot Redis启动器，用于缓存和数据存储 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>3.4.6</version>
+        </dependency>
+
+        <!-- Spring Session Redis集成，用于分布式会话管理 -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+            <version>3.5.0</version>
+        </dependency>
+        <!--Redisson依赖，用于直接从Java实现分布式锁等复杂Redis操作-->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.51.0</version>
+        </dependency>
+
+        <!--==========JWT依赖，包含api和具体实现类，以及JSON处理==========-->
+        <!-- 公共 API：编译时就需要 -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.13.0</version>
+        </dependency>
+
+        <!-- 实现模块：运行时需要 -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.13.0</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- JSON 序列化 / 反序列化扩展（使用 Jackson） -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.13.0</version>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
 
     <build>

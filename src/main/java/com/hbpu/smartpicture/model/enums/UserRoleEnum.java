@@ -21,7 +21,7 @@ public enum UserRoleEnum {
     }
 
     /**
-     * 根据value获取美剧
+     * 根据value获取枚举值
      * @param value  枚举值value
      * @return 对应的枚举值
      */
