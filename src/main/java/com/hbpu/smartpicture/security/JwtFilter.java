@@ -1,5 +1,11 @@
 package com.hbpu.smartpicture.security;
 
+import cn.hutool.json.JSON;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hbpu.smartpicture.common.BaseResponse;
+import com.hbpu.smartpicture.common.ResultUtils;
+import com.hbpu.smartpicture.exception.BusinessException;
+import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.model.pojo.User;
 import com.hbpu.smartpicture.model.vo.UserLoginVO;
 import com.hbpu.smartpicture.service.impl.UserServiceImpl;
@@ -74,14 +80,14 @@ public class JwtFilter implements Filter {
         // 第三步：验证 Token
         String authorization = request.getHeader("Authorization");
 
-        if (authorization != null && authorization.startsWith("Bearer ")) {
-            try {
+        try {
+            if (authorization != null && authorization.startsWith("Bearer ")) {
                 String token = authorization.substring(7);
 
                 // 验证 token 是否过期
                 if (JwtUtil.isTokenExpired(token)) {
                     log.warn("Token 已过期");
-                    sendUnauthorizedResponse(request, response, "Token已过期，请重新登录");
+                    handleException(response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "登录已过期");
                     return;
                 }
 
@@ -93,16 +99,22 @@ public class JwtFilter implements Filter {
                     filterChain.doFilter(servletRequest, servletResponse);
                 } else {
                     log.warn("Redis 中未找到用户信息");
-                    sendUnauthorizedResponse(request, response, "用户信息不存在，请重新登录");
+                    handleException(response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "未登录");
                 }
-            } catch (Exception e) {
-                log.error("Token 验证异常: ", e);
-                sendUnauthorizedResponse(request, response, "Token验证失败");
+            } else {
+                log.warn("请求头中没有 Token 或格式不正确，URI: {}", requestURI);
+                handleException(response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "未登录或登录已过期");
             }
-        } else {
-            log.warn("请求头中没有 Token 或格式不正确，URI: {}", requestURI);
-            sendUnauthorizedResponse(request, response, "未登录或登录已过期");
+        } catch (BusinessException e) {
+            // 捕获业务异常并返回 JSON 响应
+            log.error("JwtFilter BusinessException: {}", e.getMessage(), e);
+            handleException(response, e.getCode(), e.getMessage());
+        } catch (Exception e) {
+            // 捕获其他异常
+            log.error("JwtFilter Exception: ", e);
+            handleException(response, ErrorCode.SYSTEM_ERROR.getCode(), "认证失败");
         }
+
     }
 
     /**
@@ -119,15 +131,20 @@ public class JwtFilter implements Filter {
     }
 
     /**
-     * 发送未授权响应
+     * 统一处理异常响应
      */
-    private void sendUnauthorizedResponse(HttpServletRequest request, HttpServletResponse response, String message) throws IOException {
-        // 设置 CORS 响应头（重要！否则前端无法收到错误信息）
-        setCorsHeaders(request, response);
-
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    private void handleException(HttpServletResponse response, int code, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write(String.format("{\"code\":40100,\"message\":\"%s\"}", message));
+
+        // 构造错误响应
+        BaseResponse<?> result = new BaseResponse<>(code, message, null);
+
+        // 转换为 JSON 并返回
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonResponse = objectMapper.writeValueAsString(result);
+
+        response.getWriter().write(jsonResponse);
     }
 
     @Override

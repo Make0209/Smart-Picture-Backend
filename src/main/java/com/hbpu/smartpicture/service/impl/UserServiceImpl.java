@@ -1,5 +1,6 @@
 package com.hbpu.smartpicture.service.impl;
 
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -7,10 +8,12 @@ import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
 import com.hbpu.smartpicture.mapper.UserMapper;
-import com.hbpu.smartpicture.model.dto.UserRegisterDTO;
+import com.hbpu.smartpicture.model.dto.user.UserQueryDTO;
+import com.hbpu.smartpicture.model.dto.user.UserRegisterDTO;
 import com.hbpu.smartpicture.model.enums.UserRoleEnum;
 import com.hbpu.smartpicture.model.pojo.User;
 import com.hbpu.smartpicture.model.vo.UserLoginVO;
+import com.hbpu.smartpicture.model.vo.UserVO;
 import com.hbpu.smartpicture.security.JwtUtil;
 import com.hbpu.smartpicture.service.UserService;
 import io.jsonwebtoken.Claims;
@@ -22,6 +25,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -96,9 +100,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     /**
      * 用户登录方法实现类
-     * @param userAccount 用户账号
+     *
+     * @param userAccount  用户账号
      * @param userPassword 用户密码
-     * @return
+     * @return 用户登录请求响应封装类
      */
     @Override
     public UserLoginVO userLogin(String userAccount, String userPassword) {
@@ -143,7 +148,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         mapCache.put("token", token, 30, TimeUnit.MINUTES);
         mapCache.put("object", user, 30, TimeUnit.MINUTES);
 
-        return  userLoginVO;
+        return userLoginVO;
     }
 
     /**
@@ -205,6 +210,65 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     }
 
+    /**
+     * 获取单个脱敏后的UserVO对象
+     *
+     * @param user 用户实体类
+     * @return UserVO对象
+     */
+    @Override
+    public UserVO getUserVO(User user) {
+        ThrowUtils.throwIf(user == null, new BusinessException(ErrorCode.PARAMS_ERROR));
+        UserVO userVO = new UserVO();
+        BeanUtils.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    /**
+     * 获取脱敏后的UserVO对象列表
+     *
+     * @param users 用户实体类
+     * @return UserVO对象列表
+     */
+    @Override
+    public List<UserVO> getUserVOList(List<User> users) {
+        ThrowUtils.throwIf(users == null, new BusinessException(ErrorCode.PARAMS_ERROR));
+        return users.stream().map(this::getUserVO).toList();
+    }
+
+    /**
+     * 根据条件生成查询条件
+     *
+     * @param userQueryDTO 用户分页查询请求封装类
+     * @return 返回一个构建完成的查询条件对象
+     */
+    @Override
+    public LambdaQueryWrapper<User> getQueryWrapper(UserQueryDTO userQueryDTO) {
+        ThrowUtils.throwIf(userQueryDTO == null, new BusinessException(ErrorCode.PARAMS_ERROR));
+        //获取其中所有的属性值
+        Long id = userQueryDTO.getId();
+        String userName = userQueryDTO.getUserName();
+        String userAccount = userQueryDTO.getUserAccount();
+        String userProfile = userQueryDTO.getUserProfile();
+        String userRole = userQueryDTO.getUserRole();
+        String sortField = userQueryDTO.getSortField();
+        String sortOrder = userQueryDTO.getSortOrder();
+        //获取查询条件对象
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        //验证属性值并根据其构建查询语句
+        wrapper.eq(ObjUtil.isNotNull(id), User::getId, id)
+               .like(StrUtil.isNotBlank(userAccount), User::getUserAccount, userAccount)
+               .like(StrUtil.isNotBlank(userName), User::getUserName, userName)
+               .like(StrUtil.isNotBlank(userProfile), User::getUserProfile, userProfile)
+               .eq(StrUtil.isNotBlank(userRole), User::getUserRole, userRole);
+        //拼接字符串
+        if (StrUtil.isNotBlank(sortField)) {
+            String orderSql = "ORDER BY " + sortField + " " + ("ascend".equals(sortOrder) ? "ASC" : "DESC");
+            wrapper.last(orderSql);
+        }
+        return wrapper;
+    }
+
 
     /**
      * 获取加密后的密码
@@ -212,10 +276,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * @param password 要加密的密码
      * @return 返回加密后的密码
      */
-    private String getEncryptedPassword(String password) {
+    @Override
+    public String getEncryptedPassword(String password) {
         final String SALT = "Kefan";
         return DigestUtils.md5DigestAsHex((SALT + password).getBytes());
     }
+
+
 }
 
 

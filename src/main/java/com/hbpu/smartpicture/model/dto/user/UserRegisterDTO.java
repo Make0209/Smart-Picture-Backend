@@ -1,4 +1,4 @@
-package com.hbpu.smartpicture.model.dto;
+package com.hbpu.smartpicture.model.dto.user;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

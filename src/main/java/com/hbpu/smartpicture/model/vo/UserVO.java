@@ -9,15 +9,13 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/**]
- * 用户登录响应封装类
+/**
+ * 返回给前端的脱敏用户信息的封装类
  */
-@Schema(description = "用户登录响应封装类")
 @Data
-public class UserLoginVO implements Serializable {
-    @Schema(hidden = true)
+public class UserVO implements Serializable {
     @Serial
-    private static final long serialVersionUID = -9041387633841720571L;
+    private static final long serialVersionUID = 4257432573126279947L;
 
     /**
      * id
@@ -60,16 +58,4 @@ public class UserLoginVO implements Serializable {
      */
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
-
-    /**
-     * 更新时间
-     */
-    @Schema(description = "更新时间")
-    private LocalDateTime updateTime;
-
-    /**
-     * 用户token
-     */
-    @Schema(description = "用户token")
-    private String token;
 }

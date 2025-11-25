@@ -79,6 +79,13 @@
             <version>3.5.14</version>
         </dependency>
 
+        <!--分页插件  https://mvnrepository.com/artifact/com.baomidou/mybatis-plus-jsqlparser -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.14</version>
+        </dependency>
+
         <!--Hutool工具类库 https://doc.hutool.cn/-->
         <dependency>
             <groupId>cn.hutool</groupId>
@@ -93,6 +100,8 @@
             <version>4.4.0</version>
         </dependency>
 
+        <!--API文档 https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui -->
+        <!-- https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
