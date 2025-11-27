@@ -57,7 +57,7 @@ public class JwtUtil {
             Claims claims = parseToken(token);
             return claims.getExpiration().before(new Date());
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "解析token时出现异常或token已过期！");
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "登录已过期");
         }
     }
 

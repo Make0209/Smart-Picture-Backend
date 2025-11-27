@@ -44,7 +44,8 @@ public class JwtFilter implements Filter {
             "/api/swagger-ui.html",
             "/api/swagger-resources",
             "/api/v3/api-docs",
-            "/api/webjars"
+            "/api/webjars",
+            "/api/health"
     );
 
 
@@ -85,11 +86,7 @@ public class JwtFilter implements Filter {
                 String token = authorization.substring(7);
 
                 // 验证 token 是否过期
-                if (JwtUtil.isTokenExpired(token)) {
-                    log.warn("Token 已过期");
-                    handleException(response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "登录已过期");
-                    return;
-                }
+                JwtUtil.isTokenExpired(token);
 
                 // 从 Redis 中获取当前用户信息
                 User currentUser = userService.getCurrentUser(request);
@@ -99,20 +96,20 @@ public class JwtFilter implements Filter {
                     filterChain.doFilter(servletRequest, servletResponse);
                 } else {
                     log.warn("Redis 中未找到用户信息");
-                    handleException(response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "未登录");
+                    handleException(request, response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "未登录");
                 }
             } else {
                 log.warn("请求头中没有 Token 或格式不正确，URI: {}", requestURI);
-                handleException(response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "未登录或登录已过期");
+                handleException(request, response, ErrorCode.NOT_LOGIN_ERROR.getCode(), "请求头中没有 Token");
             }
         } catch (BusinessException e) {
             // 捕获业务异常并返回 JSON 响应
             log.error("JwtFilter BusinessException: {}", e.getMessage(), e);
-            handleException(response, e.getCode(), e.getMessage());
+            handleException(request, response, e.getCode(), e.getMessage());
         } catch (Exception e) {
             // 捕获其他异常
             log.error("JwtFilter Exception: ", e);
-            handleException(response, ErrorCode.SYSTEM_ERROR.getCode(), "认证失败");
+            handleException(request, response, ErrorCode.SYSTEM_ERROR.getCode(), "认证失败");
         }
 
     }
@@ -133,19 +130,21 @@ public class JwtFilter implements Filter {
     /**
      * 统一处理异常响应
      */
-    private void handleException(HttpServletResponse response, int code, String message) throws IOException {
+    private void handleException(HttpServletRequest request, HttpServletResponse response, int code, String message) throws IOException {
+        // 先加 CORS 头
+        setCorsHeaders(request, response);
+
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json;charset=UTF-8");
 
-        // 构造错误响应
         BaseResponse<?> result = new BaseResponse<>(code, message, null);
 
-        // 转换为 JSON 并返回
         ObjectMapper objectMapper = new ObjectMapper();
         String jsonResponse = objectMapper.writeValueAsString(result);
 
         response.getWriter().write(jsonResponse);
     }
+
 
     @Override
     public void destroy() {
