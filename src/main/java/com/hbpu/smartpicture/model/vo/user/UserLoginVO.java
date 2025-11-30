@@ -1,7 +1,5 @@
-package com.hbpu.smartpicture.model.vo;
+package com.hbpu.smartpicture.model.vo.user;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -10,12 +8,14 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 返回给前端的脱敏用户信息的封装类
+ * 用户登录响应封装类
  */
+@Schema(description = "用户登录响应封装类")
 @Data
-public class UserVO implements Serializable {
+public class UserLoginVO implements Serializable {
+    @Schema(hidden = true)
     @Serial
-    private static final long serialVersionUID = 4257432573126279947L;
+    private static final long serialVersionUID = -9041387633841720571L;
 
     /**
      * id
@@ -58,4 +58,16 @@ public class UserVO implements Serializable {
      */
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    @Schema(description = "更新时间")
+    private LocalDateTime updateTime;
+
+    /**
+     * 用户token
+     */
+    @Schema(description = "用户token")
+    private String token;
 }

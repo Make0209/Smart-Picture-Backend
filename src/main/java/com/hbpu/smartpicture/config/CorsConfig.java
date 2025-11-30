@@ -19,8 +19,8 @@ public class CorsConfig {
     /**
      * 跨域配置过滤器
      * 用于解决前后端分离项目中的跨域问题
-     *
-     * @Order(Ordered.HIGHEST_PRECEDENCE) 确保此过滤器最先执行
+     * <p>
+     * &#064;Order(Ordered.HIGHEST_PRECEDENCE)  确保此过滤器最先执行
      * 避免在其他过滤器（如认证过滤器）处理前就因跨域问题被拦截
      */
     @Bean

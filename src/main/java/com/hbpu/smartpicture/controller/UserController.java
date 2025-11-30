@@ -1,6 +1,5 @@
 package com.hbpu.smartpicture.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hbpu.smartpicture.annotation.AuthCheck;
 import com.hbpu.smartpicture.common.BaseResponse;
@@ -12,8 +11,8 @@ import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
 import com.hbpu.smartpicture.model.dto.user.*;
 import com.hbpu.smartpicture.model.pojo.User;
-import com.hbpu.smartpicture.model.vo.UserLoginVO;
-import com.hbpu.smartpicture.model.vo.UserVO;
+import com.hbpu.smartpicture.model.vo.user.UserLoginVO;
+import com.hbpu.smartpicture.model.vo.user.UserVO;
 import com.hbpu.smartpicture.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,6 +20,7 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -111,10 +111,14 @@ public class UserController {
         BeanUtils.copyProperties(userAddDTO, user);
         final String DEFAULT_USER_PASSWORD = "12345678";
         user.setUserPassword(userService.getEncryptedPassword(DEFAULT_USER_PASSWORD));
-        ThrowUtils.throwIf(
-                !userService.save(user),
-                new BusinessException(ErrorCode.OPERATION_ERROR, "插入数据时出现错误！")
-        );
+        try {
+            boolean saved = userService.save(user);
+            ThrowUtils.throwIf(!saved,
+                               new BusinessException(ErrorCode.OPERATION_ERROR, "插入数据时出现错误！"));
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号已存在！");
+        }
+
         return ResultUtils.success(user.getId());
     }
 

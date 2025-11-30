@@ -1,13 +1,12 @@
 package com.hbpu.smartpicture.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.hbpu.smartpicture.model.dto.user.UserQueryDTO;
 import com.hbpu.smartpicture.model.dto.user.UserRegisterDTO;
 import com.hbpu.smartpicture.model.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.hbpu.smartpicture.model.vo.UserLoginVO;
-import com.hbpu.smartpicture.model.vo.UserVO;
+import com.hbpu.smartpicture.model.vo.user.UserLoginVO;
+import com.hbpu.smartpicture.model.vo.user.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
