@@ -16,7 +16,6 @@ spring:
 server:
   servlet:
     context-path: /api
-
 # Mybatis-Plus配置
 mybatis-plus:
   configuration:
