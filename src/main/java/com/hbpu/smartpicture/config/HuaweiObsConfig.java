@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "huawei.obs")
 @Data
-public class HuaweiOBSConfig {
+public class HuaweiObsConfig {
     //访问地址
     private String endPoint;
     //访问key
