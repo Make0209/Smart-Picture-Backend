@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 /**
  * 全局异常处理器
@@ -45,6 +46,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public BaseResponse<?> handleMediaTypeException(HttpMediaTypeNotSupportedException ex) {
         return ResultUtils.error(ErrorCode.FORBIDDEN_ERROR,("不支持的请求类型：" + ex.getContentType()));
+    }
+
+    /**
+     * 捕获文件按过大的异常
+     * @param ex 目标异常
+     * @return 返回异常错误信息
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public BaseResponse<?> handleMaxSize(MaxUploadSizeExceededException ex) {
+        return ResultUtils.error(ErrorCode.OPERATION_ERROR,"上传文件过大，请上传小于限制的文件！");
     }
 
 }

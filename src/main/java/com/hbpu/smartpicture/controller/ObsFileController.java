@@ -10,7 +10,6 @@ import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
 import com.hbpu.smartpicture.manager.ObsManager;
 import com.obs.services.model.ObsObject;
-import com.obs.services.model.PutObjectResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -32,12 +31,12 @@ import java.nio.charset.StandardCharsets;
  */
 @Tag(name = "控制文件上传的接口", description = "控制文件上传的接口")
 @RestController
-@RequestMapping("/file")
+@RequestMapping("/obs file")
 @Slf4j
-public class FileController {
+public class ObsFileController {
     private final ObsManager obsManager;
 
-    public FileController(ObsManager obsManager) {
+    public ObsFileController(ObsManager obsManager) {
         this.obsManager = obsManager;
     }
 

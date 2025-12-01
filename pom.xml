@@ -105,6 +105,13 @@
             <artifactId>esdk-obs-java-bundle</artifactId>
             <version>3.25.10</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.qcloud/cos_api -->
+        <!--腾讯云对象存储COS-->
+        <dependency>
+            <groupId>com.qcloud</groupId>
+            <artifactId>cos_api</artifactId>
+            <version>5.6.259</version>
+        </dependency>
 
         <!--API文档 https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui -->
         <!-- https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui -->
