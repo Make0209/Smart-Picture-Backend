@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * @author 马可
- * @description 针对表【user(用户)】的数据库操作Service实现
- * @createDate 2025-11-10 17:42:36
+ * &#064;description  针对表【user(用户)】的数据库操作Service实现
+ * &#064;createDate  2025-11-10 17:42:36
  */
 @Service
 @Slf4j

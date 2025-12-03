@@ -192,7 +192,6 @@ public class UserController {
         );
         User user = new User();
         BeanUtils.copyProperties(userUpdateDTO, user);
-        ;
         ThrowUtils.throwIf(
                 !userService.updateById(user),
                 new BusinessException(ErrorCode.OPERATION_ERROR, "更新用户失败！")

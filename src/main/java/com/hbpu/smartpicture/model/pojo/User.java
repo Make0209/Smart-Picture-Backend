@@ -11,7 +11,7 @@ import lombok.Data;
 
 /**
  * 用户
- * @TableName user
+ * &#064;TableName  user
  */
 @Schema(description = "用户")
 @TableName(value ="user")

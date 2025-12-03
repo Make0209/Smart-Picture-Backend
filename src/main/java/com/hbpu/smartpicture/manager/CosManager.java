@@ -9,6 +9,7 @@ import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.ObjectMetadata;
 import com.qcloud.cos.model.PutObjectRequest;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.PicOperations;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -59,6 +60,31 @@ public class CosManager {
             return cosClient.getObject(bucket, key);
         } catch (CosClientException e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "未找到指定图片！");
+        }
+    }
+
+    /**
+     * 上传一个图片到COS并返回基本信息
+     *
+     * @param key  目标对象路径名称
+     * @param file 目标文件
+     * @return 返回一个上传结果封装类
+     */
+    public PutObjectResult putPicture(String key, MultipartFile file) {
+        ObjectMetadata metadata = new ObjectMetadata();
+        metadata.setContentLength(file.getSize());
+        metadata.setContentType(file.getContentType());
+
+        try (InputStream inputStream = file.getInputStream()) {
+            PutObjectRequest req = new PutObjectRequest(bucket, key, inputStream, metadata);
+            PicOperations picOperations = new PicOperations();
+            picOperations.setIsPicInfo(1);
+            req.setPicOperations(picOperations);
+            return cosClient.putObject(req);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件读取失败！");
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败！");
         }
     }
 }

@@ -8,7 +8,7 @@ import lombok.Data;
  */
 @Schema(description = "上传图片后返回图片相关信息的封装类")
 @Data
-public class UploadPictureResult {
+public class UploadPictureResultDTO {
 
     /**
      * 图片地址
@@ -20,7 +20,7 @@ public class UploadPictureResult {
      * 图片名称
      */
     @Schema(description = "图片名称")
-    private String picName;
+    private String name;
 
     /**
      * 文件体积

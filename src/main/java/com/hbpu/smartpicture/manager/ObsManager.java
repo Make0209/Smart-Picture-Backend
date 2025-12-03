@@ -14,7 +14,7 @@ import java.io.InputStream;
 public class ObsManager {
 
     private final ObsClient obsClient;
-    private final String bucket = "kefan-picture";
+    private final String BUCKET = "kefan-picture";
 
     public ObsManager(ObsClient obsClient) {
         this.obsClient = obsClient;
@@ -27,7 +27,7 @@ public class ObsManager {
      * @return 返回上传结果信息封装类
      */
     public PutObjectResult putObject(String objectKey, InputStream inputStream) {
-        return obsClient.putObject(bucket, objectKey, inputStream);
+        return obsClient.putObject(BUCKET, objectKey, inputStream);
     }
 
     /**
@@ -36,6 +36,6 @@ public class ObsManager {
      * @return 返回下载结果信息封装类
      */
     public ObsObject getObject(String objectKey) {
-        return obsClient.getObject(bucket, objectKey);
+        return obsClient.getObject(BUCKET, objectKey);
     }
 }

@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.websocket.server.PathParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -68,7 +67,7 @@ public class CosFileController {
     }
 
     /**
-     * 从对象存储下载一个对象
+     * 【测试\管理员】从对象存储下载一个对象
      *
      * @param key 目标对象路径名称
      * @param response 用户响应

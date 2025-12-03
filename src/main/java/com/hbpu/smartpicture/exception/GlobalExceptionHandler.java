@@ -50,11 +50,10 @@ public class GlobalExceptionHandler {
 
     /**
      * 捕获文件按过大的异常
-     * @param ex 目标异常
      * @return 返回异常错误信息
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public BaseResponse<?> handleMaxSize(MaxUploadSizeExceededException ex) {
+    public BaseResponse<?> handleMaxSize() {
         return ResultUtils.error(ErrorCode.OPERATION_ERROR,"上传文件过大，请上传小于限制的文件！");
     }
 
