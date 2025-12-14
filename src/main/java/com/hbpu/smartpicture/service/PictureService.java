@@ -1,11 +1,11 @@
 package com.hbpu.smartpicture.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.hbpu.smartpicture.exception.BusinessException;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.dto.picture.PictureQueryDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureUploadDTO;
 import com.hbpu.smartpicture.model.pojo.Picture;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.vo.picture.PictureVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,4 +44,17 @@ public interface PictureService extends IService<Picture> {
      * @return 返回图片信息封装类VO
      */
     PictureVO getPictureVO(Picture picture, HttpServletRequest request);
+
+    /**
+     * 分页获取图片信息封装类接口
+     * @param picturePage 图片分页对象
+     * @return PictureVO类型的图片分页对象
+     */
+    Page<PictureVO> getPictureVOPage(Page<Picture> picturePage);
+
+    /**
+     * 检验图片接口
+     * @param picture 目标图片
+     */
+    void validPicture(Picture picture);
 }

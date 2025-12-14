@@ -1,19 +1,35 @@
 package com.hbpu.smartpicture.controller;
 
+import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hbpu.smartpicture.annotation.AuthCheck;
 import com.hbpu.smartpicture.common.BaseResponse;
+import com.hbpu.smartpicture.common.DeleteRequest;
 import com.hbpu.smartpicture.common.ResultUtils;
 import com.hbpu.smartpicture.constant.UserConstant;
+import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
+import com.hbpu.smartpicture.model.dto.picture.PictureEditDTO;
+import com.hbpu.smartpicture.model.dto.picture.PictureQueryDTO;
+import com.hbpu.smartpicture.model.dto.picture.PictureUpdateDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureUploadDTO;
+import com.hbpu.smartpicture.model.pojo.Picture;
+import com.hbpu.smartpicture.model.pojo.User;
+import com.hbpu.smartpicture.model.vo.picture.PictureTagCategoryVO;
 import com.hbpu.smartpicture.model.vo.picture.PictureVO;
 import com.hbpu.smartpicture.service.PictureService;
+import com.hbpu.smartpicture.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 图片功能接口
@@ -23,9 +39,11 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/picture")
 public class PictureController {
     private final PictureService pictureService;
+    private final UserService userService;
 
-    public PictureController(PictureService pictureService) {
+    public PictureController(PictureService pictureService, UserService userService) {
         this.pictureService = pictureService;
+        this.userService = userService;
     }
 
     /**
@@ -48,4 +66,187 @@ public class PictureController {
         PictureVO pictureVO = pictureService.uploadPicture(file, pictureUploadDTO, request);
         return ResultUtils.success(pictureVO);
     }
+
+    /**
+     * 删除图片
+     *
+     * @param deleteRequest 删除请求封装类
+     * @param request       用户请求
+     * @return 删除成功返回true
+     */
+    @Operation(summary = "删除图片", description = "删除图片")
+    @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @PostMapping("/delete")
+    public BaseResponse<Boolean> deletePicture(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
+        User currentUser = userService.getCurrentUser(request);
+        Picture picture = pictureService.getById(deleteRequest.getId());
+        ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR, "要删除的图片不存在！");
+        ThrowUtils.throwIf(
+                !Objects.equals(picture.getUserId(), currentUser.getId()) &&
+                        !Objects.equals(currentUser.getUserRole(), "admin"),
+                ErrorCode.PARAMS_ERROR,
+                "没有权限删除该图片！"
+        );
+        ThrowUtils.throwIf(!pictureService.removeById(deleteRequest.getId()), ErrorCode.OPERATION_ERROR, "删除失败！");
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 【管理员】更新图片
+     * @param pictureUpdateDTO 更新图片信息封装类
+     * @return 更新成功返回true
+     */
+    @Operation(summary = "【管理员】更新图片", description = "【管理员】更新图片")
+    @PostMapping("/update")
+    @AuthCheck(mustRole = UserConstant.ROLE_ADMIN)
+    public BaseResponse<Boolean> updatePicture(@RequestBody PictureUpdateDTO pictureUpdateDTO) {
+        ThrowUtils.throwIf(
+                pictureUpdateDTO == null || pictureUpdateDTO.getId() <= 0,
+                ErrorCode.PARAMS_ERROR
+        );
+        // 将实体类和 DTO 进行转换
+        Picture picture = new Picture();
+        BeanUtils.copyProperties(pictureUpdateDTO, picture);
+        // 注意将 list 转为 string
+        picture.setTags(JSONUtil.toJsonStr(pictureUpdateDTO.getTags()));
+        // 数据校验
+        pictureService.validPicture(picture);
+        // 判断是否存在
+        Picture oldPicture = pictureService.getById(pictureUpdateDTO.getId());
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 操作数据库
+        boolean result = pictureService.updateById(picture);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 【管理员】根据id获取图片
+     * @param id 图片id
+     * @return 返回图片对象
+     */
+    @Operation(summary = "【管理员】根据id获取图片", description = "【管理员】根据id获取图片")
+    @GetMapping("/get")
+    @AuthCheck(mustRole = UserConstant.ROLE_ADMIN)
+    public BaseResponse<Picture> getPictureById(long id) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        // 查询数据库
+        Picture picture = pictureService.getById(id);
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 获取封装类
+        return ResultUtils.success(picture);
+    }
+
+    /**
+     * 根据图片获取VO对象
+     * @param id 图片id
+     * @param request 用户请求
+     * @return 返回PictureVO对象
+     */
+    @Operation(summary = "根据图片获取VO对象", description = "根据图片获取VO对象")
+    @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @GetMapping("/get/vo")
+    public BaseResponse<PictureVO> getPictureVOById(long id, HttpServletRequest request) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        // 查询数据库
+        Picture picture = pictureService.getById(id);
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 获取封装类
+        return ResultUtils.success(pictureService.getPictureVO(picture, request));
+    }
+
+    /**
+     * 【管理员】分页获取图片
+     * @param pictureQueryDTO 分页图片信息封装类
+     * @return 返回图片分页对象封装类
+     */
+    @Operation(summary = "【管理员】分页获取图片", description = "【管理员】分页获取图片")
+    @PostMapping("/list/page")
+    @AuthCheck(mustRole = UserConstant.ROLE_ADMIN)
+    public BaseResponse<Page<Picture>> listPictureByPage(@RequestBody PictureQueryDTO pictureQueryDTO) {
+        long current = pictureQueryDTO.getCurrent();
+        long size = pictureQueryDTO.getPageSize();
+        // 查询数据库
+        Page<Picture> picturePage = pictureService.page(
+                new Page<>(current, size),
+                pictureService.getQueryWrapper(pictureQueryDTO)
+        );
+        return ResultUtils.success(picturePage);
+    }
+
+    /**
+     * 分页获取图片VO对象
+     * @param pictureQueryDTO 分页图片信息封装类
+     * @return 分页图片VO对象封装类
+     */
+    @Operation(summary = "分页获取图片VO对象", description = "分页获取图片VO对象")
+    @PostMapping("/list/page/vo")
+    public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryDTO pictureQueryDTO) {
+        long current = pictureQueryDTO.getCurrent();
+        long size = pictureQueryDTO.getPageSize();
+        // 限制爬虫
+        ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 查询数据库
+        Page<Picture> picturePage = pictureService.page(
+                new Page<>(current, size),
+                pictureService.getQueryWrapper(pictureQueryDTO)
+        );
+        // 获取封装类
+        return ResultUtils.success(pictureService.getPictureVOPage(picturePage));
+    }
+
+    /**
+     * 编辑图片
+     * @param pictureEditDTO 图片编辑信息封装类
+     * @param request 用户请求
+     * @return 编辑成功返回true
+     */
+    @Operation(summary = "编辑图片", description = "编辑图片")
+    @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @PostMapping("/edit")
+    public BaseResponse<Boolean> editPicture(@RequestBody PictureEditDTO pictureEditDTO, HttpServletRequest request) {
+        if (pictureEditDTO == null || pictureEditDTO.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 在此处将实体类和 DTO 进行转换
+        Picture picture = new Picture();
+        BeanUtils.copyProperties(pictureEditDTO, picture);
+        // 注意将 list 转为 string
+        picture.setTags(JSONUtil.toJsonStr(pictureEditDTO.getTags()));
+        // 设置编辑时间
+//        picture.setEditTime(new Date());
+        // 数据校验
+        pictureService.validPicture(picture);
+        User loginUser = userService.getCurrentUser(request);
+        // 判断是否存在
+        Picture oldPicture = pictureService.getById(pictureEditDTO.getId());
+        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 仅本人或管理员可编辑
+        ThrowUtils.throwIf(
+                !oldPicture.getUserId().equals(loginUser.getId()) &&
+                        !Objects.equals(loginUser.getUserRole(), "admin"),
+                ErrorCode.NO_AUTH_ERROR
+        );
+        // 操作数据库
+        boolean result = pictureService.updateById(picture);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 获取标签和分类
+     * @return 返回一个标签分类信息的封装类
+     */
+    @Operation(summary = "获取标签和分类", description = "获取标签和分类")
+    @GetMapping("/tag_category")
+    public BaseResponse<PictureTagCategoryVO> listPictureTagCategory() {
+        PictureTagCategoryVO pictureTagCategory = new PictureTagCategoryVO();
+        List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "艺术", "校园", "背景", "简历", "创意");
+        List<String> categoryList = Arrays.asList("模板", "电商", "表情包", "素材", "海报");
+        pictureTagCategory.setTagList(tagList);
+        pictureTagCategory.setCategoryList(categoryList);
+        return ResultUtils.success(pictureTagCategory);
+    }
+
 }

@@ -21,7 +21,7 @@ import java.util.List;
 @Component
 public class FileManager {
     private final CosManager cosManager;
-    private final List<String> SUFFIX_WHITELIST = Arrays.asList("jpg", "jpeg", "png", "webp");
+    private final List<String> SUFFIX_WHITELIST = Arrays.asList("jpg", "jpeg", "png", "webp", "PNG");
 
     public FileManager(CosManager cosManager) {
         this.cosManager = cosManager;
