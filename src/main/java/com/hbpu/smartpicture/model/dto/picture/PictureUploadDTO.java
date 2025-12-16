@@ -21,4 +21,10 @@ public class PictureUploadDTO implements Serializable {
      */
     @Schema(description = "图片id")
     private Long id;
+
+    /**
+     * 图片url
+     */
+    @Schema(description = "图片url")
+    private String url;
 }

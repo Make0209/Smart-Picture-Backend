@@ -1,17 +1,19 @@
 package com.hbpu.smartpicture.model.pojo;
 
-import com.baomidou.mybatisplus.annotation.*;
-
-import java.time.LocalDateTime;
-
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 /**
  * 图片
  * &#064;TableName  picture
  */
-@Schema(description = "图片")
+@Schema(description = "图片 &#064;TableName  picture")
 @TableName(value = "picture")
 @Data
 public class Picture {
@@ -112,4 +114,28 @@ public class Picture {
     @Schema(description = "是否删除")
     @TableLogic
     private Integer isDelete;
+
+    /**
+     * 审核状态：0-待审核; 1-通过; 2-拒绝
+     */
+    @Schema(description = "审核状态：0-待审核; 1-通过; 2-拒绝")
+    private Integer reviewStatus;
+
+    /**
+     * 审核信息
+     */
+    @Schema(description = "审核信息")
+    private String reviewMessage;
+
+    /**
+     * 审核人 ID
+     */
+    @Schema(description = "审核人 ID")
+    private Long reviewerId;
+
+    /**
+     * 审核时间
+     */
+    @Schema(description = "审核时间")
+    private LocalDateTime reviewTime;
 }

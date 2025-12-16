@@ -4,11 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.dto.picture.PictureQueryDTO;
+import com.hbpu.smartpicture.model.dto.picture.PictureReviewDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureUploadDTO;
 import com.hbpu.smartpicture.model.pojo.Picture;
+import com.hbpu.smartpicture.model.pojo.User;
 import com.hbpu.smartpicture.model.vo.picture.PictureVO;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @author 马可
@@ -20,12 +21,12 @@ public interface PictureService extends IService<Picture> {
     /**
      * 上传图片接口
      *
-     * @param file      目标文件
+     * @param inputSource      目标文件源
      * @param uploadDTO 上传信息封装类
      * @param request   用户请求
      * @return 图片信息封装类
      */
-    PictureVO uploadPicture(MultipartFile file, PictureUploadDTO uploadDTO, HttpServletRequest request);
+    PictureVO uploadPicture(Object inputSource, PictureUploadDTO uploadDTO, HttpServletRequest request);
 
     /**
      * 获取查询语句接口
@@ -57,4 +58,20 @@ public interface PictureService extends IService<Picture> {
      * @param picture 目标图片
      */
     void validPicture(Picture picture);
+
+    /**
+     * 图片审核接口
+     *
+     * @param pictureReviewDTO 图片审核信息封装类
+     * @param request          用户请求
+     */
+    void pictureReview(PictureReviewDTO pictureReviewDTO, HttpServletRequest request);
+
+    /**
+     * 重置审核状态并自动过审接口
+     *
+     * @param picture   目标图片
+     * @param loginUser 当前用户
+     */
+    void resetReviewStatus(Picture picture, User loginUser);
 }

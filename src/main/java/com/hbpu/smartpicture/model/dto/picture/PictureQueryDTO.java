@@ -7,9 +7,13 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
-@Schema
+/**
+ * 分页请求封装类，其中的字段为查询条件
+ */
+@Schema(description = "分页请求封装类，其中的字段为查询条件")
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class PictureQueryDTO extends PageRequest implements Serializable {
@@ -89,5 +93,29 @@ public class PictureQueryDTO extends PageRequest implements Serializable {
      */
     @Schema(description = "用户 id")
     private Long userId;
+
+    /**
+     * 审核状态：0-待审核; 1-通过; 2-拒绝
+     */
+    @Schema(description = "审核状态：0-待审核; 1-通过; 2-拒绝")
+    private Integer reviewStatus;
+
+    /**
+     * 审核信息
+     */
+    @Schema(description = "审核信息")
+    private String reviewMessage;
+
+    /**
+     * 审核人 ID
+     */
+    @Schema(description = "审核人 ID")
+    private Long reviewerId;
+
+    /**
+     * 审核时间
+     */
+    @Schema(description = "审核时间")
+    private LocalDateTime reviewTime;
 
 }
