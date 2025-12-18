@@ -1,6 +1,7 @@
 package com.hbpu.smartpicture.manager.upload;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpStatus;
@@ -17,10 +18,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -29,13 +30,94 @@ public class UrlPictureUpload extends PictureUploadTemplate {
         super(cosManager);
     }
 
+    /**
+     * 获取原始文件名
+     * @param inputSource 输入源
+     * @return 返回原始文件名（确保带有扩展名）
+     */
     @Override
     protected String getOriginalFilename(Object inputSource) {
-        if (inputSource instanceof String fileUrl) {
-            return FileUtil.getName(fileUrl);
-        } else {
+        if (!(inputSource instanceof String fileUrl)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        String fileName = FileUtil.getName(fileUrl);
+        String extension = FileUtil.getSuffix(fileName);
+        // 如果已有有效的图片扩展名，直接返回
+        if (isValidImageExtension(extension)) {
+            return fileName;
+        }
+        // 没有扩展名或不是有效图片扩展名，需要检测
+        extension = detectExtensionFromUrl(fileUrl);
+        // 处理特殊的文件名（如必应图片ID）
+        fileName = sanitizeFileName(fileName);
+
+        return fileName + "." + extension;
+    }
+
+    /**
+     * 清理和规范化文件名
+     */
+    private String sanitizeFileName(String fileName) {
+        // 移除已存在的无效扩展名
+        fileName = FileUtil.getPrefix(fileName);
+        // 如果是类似 OIP-C.CLtPLHNphFkQtFRhzLLTQAHaE1 这种特殊ID
+        // 或文件名过长，生成新的文件名
+        if (fileName.length() > 50 || fileName.matches("^OIP-[A-Z]\\..*")) {
+            // 使用时间戳+随机字符串生成新文件名
+            return "img_" + System.currentTimeMillis() + "_" + RandomUtil.randomString(8);
+        }
+        // 移除特殊字符，只保留字母数字和部分符号
+        fileName = fileName.replaceAll("[^a-zA-Z0-9_-]", "_");
+        return fileName;
+    }
+
+    /**
+     * 验证是否为有效的图片扩展名
+     */
+    private boolean isValidImageExtension(String extension) {
+        if (StrUtil.isBlank(extension)) {
+            return false;
+        }
+        Set<String> validExtensions = Set.of("jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico");
+        return validExtensions.contains(extension.toLowerCase());
+    }
+    /**
+     * 通过HTTP请求检测文件扩展名
+     */
+    private String detectExtensionFromUrl(String fileUrl) {
+        try {
+            URL url = new URL(fileUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("HEAD");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(5000);
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            String contentType = connection.getContentType();
+            connection.disconnect();
+            return parseExtensionFromContentType(contentType);
+        } catch (Exception e) {
+            log.warn("无法检测文件类型，使用默认扩展名: {}", fileUrl, e);
+            return "jpg";
+        }
+    }
+
+    /**
+     * 从Content-Type解析扩展名
+     */
+    private String parseExtensionFromContentType(String contentType) {
+        if (StrUtil.isBlank(contentType)) {
+            return "jpg";
+        }
+        contentType = contentType.split(";")[0].trim().toLowerCase();
+        Map<String, String> mimeTypeMap = new HashMap<>();
+        mimeTypeMap.put("image/jpeg", "jpg");
+        mimeTypeMap.put("image/jpg", "jpg");
+        mimeTypeMap.put("image/png", "png");
+        mimeTypeMap.put("image/gif", "gif");
+        mimeTypeMap.put("image/webp", "webp");
+        mimeTypeMap.put("image/bmp", "bmp");
+        mimeTypeMap.put("image/svg+xml", "svg");
+        return mimeTypeMap.getOrDefault(contentType, "jpg");
     }
 
     @Override

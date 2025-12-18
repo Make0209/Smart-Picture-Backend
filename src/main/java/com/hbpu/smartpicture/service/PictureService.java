@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.dto.picture.PictureQueryDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureReviewDTO;
+import com.hbpu.smartpicture.model.dto.picture.PictureUploadByBatchDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureUploadDTO;
 import com.hbpu.smartpicture.model.pojo.Picture;
 import com.hbpu.smartpicture.model.pojo.User;
@@ -74,4 +75,13 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser 当前用户
      */
     void resetReviewStatus(Picture picture, User loginUser);
+
+    /**
+     * 批量上传图片
+     *
+     * @param pictureUploadByBatchDTO 批量上传图片请求封装类
+     * @param request                 用户请求
+     * @return 成功上传图片的数量
+     */
+    Integer uploadPictureByBatch(PictureUploadByBatchDTO pictureUploadByBatchDTO, HttpServletRequest request);
 }

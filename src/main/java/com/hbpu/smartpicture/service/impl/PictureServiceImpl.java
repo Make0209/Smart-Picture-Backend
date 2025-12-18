@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hbpu.smartpicture.constant.UserConstant;
+import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
 import com.hbpu.smartpicture.manager.upload.FilePictureUpload;
@@ -16,6 +17,7 @@ import com.hbpu.smartpicture.mapper.PictureMapper;
 import com.hbpu.smartpicture.model.dto.file.UploadPictureResultDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureQueryDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureReviewDTO;
+import com.hbpu.smartpicture.model.dto.picture.PictureUploadByBatchDTO;
 import com.hbpu.smartpicture.model.dto.picture.PictureUploadDTO;
 import com.hbpu.smartpicture.model.enums.PictureReviewStatusEnum;
 import com.hbpu.smartpicture.model.pojo.Picture;
@@ -25,9 +27,15 @@ import com.hbpu.smartpicture.model.vo.user.UserVO;
 import com.hbpu.smartpicture.service.PictureService;
 import com.hbpu.smartpicture.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -40,12 +48,13 @@ import java.util.stream.Collectors;
  * &#064;createDate  2025-11-30 22:18:55
  */
 @Service
+@Slf4j
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
     private final UserService userService;
     private final FilePictureUpload filePictureUpload;
-    private final UrlPictureUpload  urlPictureUpload;
+    private final UrlPictureUpload urlPictureUpload;
 
     public PictureServiceImpl(UserService userService, FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload) {
         this.userService = userService;
@@ -56,9 +65,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     /**
      * 上传一张图片
      *
-     * @param inputSource      目标文件源
-     * @param uploadDTO 上传图片请求封装类
-     * @param request   用户请求
+     * @param inputSource 目标文件源
+     * @param uploadDTO   上传图片请求封装类
+     * @param request     用户请求
      * @return 返回图片信息封装类
      */
     @Override
@@ -98,6 +107,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture picture = new Picture();
         BeanUtils.copyProperties(uploadPictureResultDTO, picture);
         picture.setUserId(currentUser.getId());
+        // 支持自定义图片名称
+        if (uploadDTO != null) {
+            picture.setName(uploadDTO.getFileName());
+        }
         if (pictureId != null) {
             picture.setId(pictureId);
         }
@@ -320,6 +333,75 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         } else {
             picture.setReviewStatus(PictureReviewStatusEnum.REVIEWING.getValue());
         }
+    }
+
+    /**
+     * 批量上传图片
+     * @param pictureUploadByBatchDTO 批量上传图片请求封装类
+     * @param request                 用户请求
+     * @return 返回成功上传图片的数量
+     */
+    @Override
+    public Integer uploadPictureByBatch(PictureUploadByBatchDTO pictureUploadByBatchDTO, HttpServletRequest request) {
+        // 校验参数
+        String searchText = pictureUploadByBatchDTO.getSearchText();
+        Integer count = pictureUploadByBatchDTO.getCount();
+        String namePrefix = pictureUploadByBatchDTO.getNamePrefix();
+        if (StrUtil.isBlank(namePrefix)) {
+            namePrefix = searchText;
+        }
+        ThrowUtils.throwIf(
+                count == null || count <= 0 || count > 30 || StrUtil.isBlank(searchText), ErrorCode.PARAMS_ERROR,
+                "搜索参数错误！"
+        );
+        // 抓取内容
+        String fechUrl = String.format("https://cn.bing.com/images/async?q=%25s&mmasync=1", searchText);
+        Document elements;
+        try {
+            elements = Jsoup.connect(fechUrl).get();
+        } catch (IOException e) {
+            log.error("获取网页内容失败！{}", e.getMessage());
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "抓取失败！");
+        }
+        //解析内容
+        Element dgControlDiv = elements.getElementsByClass("dgControl").first();
+        ThrowUtils.throwIf(
+                dgControlDiv == null,
+                ErrorCode.OPERATION_ERROR,
+                "获取页面元素失败！"
+        );
+        Elements imgList = dgControlDiv.select("img.mimg");
+        // 设置一个记录图片上传数量的变量
+        int uploadCount = 0;
+        for (Element img : imgList) {
+            // 获取图片链接
+            String imgUrl = img.attr("src");
+//            log.info("未处理的图片链接：{}", imgUrl);
+            if (StrUtil.isBlank(imgUrl)) {
+                log.info("链接为空，跳过：{}", fechUrl);
+                continue;
+            }
+            // 处理图片链接，获取纯净的链接
+            int questionIndex = imgUrl.indexOf("?");
+            if (questionIndex != -1) {
+                imgUrl = imgUrl.substring(0, questionIndex);
+            }
+            // 上传图片
+            try {
+                PictureUploadDTO pictureUploadDTO = new PictureUploadDTO();
+                pictureUploadDTO.setFileName(namePrefix + (uploadCount + 1));
+//                log.info("图片链接：{}", imgUrl);
+                this.uploadPicture(imgUrl, pictureUploadDTO, request);
+                uploadCount++;
+            } catch (Exception e) {
+                log.error("上传失败：{}", imgUrl);
+                continue;
+            }
+            if (uploadCount == count) {
+                break;
+            }
+        }
+        return uploadCount;
     }
 
 }

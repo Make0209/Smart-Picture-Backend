@@ -69,7 +69,7 @@ public class PictureController {
      * 根据Url地址上传图片
      *
      * @param pictureUploadDTO 图片上传信息封装类
-     * @param request 用户请求
+     * @param request          用户请求
      * @return 图片信息封装类
      */
     @Operation(summary = "根据Url地址上传图片", description = "根据Url地址上传图片")
@@ -79,6 +79,21 @@ public class PictureController {
         ThrowUtils.throwIf(pictureUploadDTO == null, ErrorCode.PARAMS_ERROR);
         PictureVO pictureVO = pictureService.uploadPicture(pictureUploadDTO.getUrl(), pictureUploadDTO, request);
         return ResultUtils.success(pictureVO);
+    }
+
+    /**
+     * 批量上传图片
+     * @param pictureUploadByBatchDTO 批量上传图片请求封装类
+     * @param request 用户请求
+     * @return 成功上传图片数量
+     */
+    @Operation(summary = "批量上传图片", description = "批量上传图片")
+    @AuthCheck(mustRole = UserConstant.ROLE_ADMIN)
+    @PostMapping("/upload/batch")
+    public BaseResponse<Integer> uploadPictureByBatch(@RequestBody PictureUploadByBatchDTO pictureUploadByBatchDTO, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureUploadByBatchDTO == null, ErrorCode.PARAMS_ERROR);
+        Integer uploadResult = pictureService.uploadPictureByBatch(pictureUploadByBatchDTO, request);
+        return ResultUtils.success(uploadResult);
     }
 
     /**
@@ -108,8 +123,9 @@ public class PictureController {
 
     /**
      * 【管理员】更新图片
+     *
      * @param pictureUpdateDTO 更新图片信息封装类
-     * @param request 用户请求
+     * @param request          用户请求
      * @return 更新成功返回true
      */
     @Operation(summary = "【管理员】更新图片", description = "【管理员】更新图片")
@@ -140,6 +156,7 @@ public class PictureController {
 
     /**
      * 【管理员】根据id获取图片
+     *
      * @param id 图片id
      * @return 返回图片对象
      */
@@ -157,7 +174,8 @@ public class PictureController {
 
     /**
      * 根据图片获取VO对象
-     * @param id 图片id
+     *
+     * @param id      图片id
      * @param request 用户请求
      * @return 返回PictureVO对象
      */
@@ -175,6 +193,7 @@ public class PictureController {
 
     /**
      * 【管理员】分页获取图片
+     *
      * @param pictureQueryDTO 分页图片信息封装类
      * @return 返回图片分页对象封装类
      */
@@ -194,6 +213,7 @@ public class PictureController {
 
     /**
      * 分页获取图片VO对象
+     *
      * @param pictureQueryDTO 分页图片信息封装类
      * @return 分页图片VO对象封装类
      */
@@ -217,8 +237,9 @@ public class PictureController {
 
     /**
      * 编辑图片
+     *
      * @param pictureEditDTO 图片编辑信息封装类
-     * @param request 用户请求
+     * @param request        用户请求
      * @return 编辑成功返回true
      */
     @Operation(summary = "编辑图片", description = "编辑图片")
@@ -255,6 +276,7 @@ public class PictureController {
 
     /**
      * 获取标签和分类
+     *
      * @return 返回一个标签分类信息的封装类
      */
     @Operation(summary = "获取标签和分类", description = "获取标签和分类")

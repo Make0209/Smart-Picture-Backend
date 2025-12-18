@@ -76,6 +76,13 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- jsoup 爬虫依赖 @ https://jsoup.org/ -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.21.2</version>
+        </dependency>
+
         <!--MybatisPlus依赖 https://baomidou.com/-->
         <dependency>
             <groupId>com.baomidou</groupId>
