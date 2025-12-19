@@ -76,6 +76,13 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- caffeine 本地缓存 https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.2.3</version>
+        </dependency>
+        
         <!-- jsoup 爬虫依赖 @ https://jsoup.org/ -->
         <dependency>
             <groupId>org.jsoup</groupId>

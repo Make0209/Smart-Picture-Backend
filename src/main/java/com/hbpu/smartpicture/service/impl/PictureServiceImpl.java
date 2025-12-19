@@ -108,7 +108,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         BeanUtils.copyProperties(uploadPictureResultDTO, picture);
         picture.setUserId(currentUser.getId());
         // 支持自定义图片名称
-        if (uploadDTO != null) {
+        if (uploadDTO != null && uploadDTO.getFileName() != null) {
             picture.setName(uploadDTO.getFileName());
         }
         if (pictureId != null) {
