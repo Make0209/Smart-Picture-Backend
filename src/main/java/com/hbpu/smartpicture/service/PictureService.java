@@ -90,4 +90,11 @@ public interface PictureService extends IService<Picture> {
      * @param picture 目标图片
      */
     void clearPicture(Picture picture);
+
+    /**
+     * 从多级缓存中获取数据
+     * @param pictureQueryDTO 分页请求封装类对象
+     * @return 类型为PictureVO的分页对象
+     */
+    Page<PictureVO> listPictureVOByPageWithCache(PictureQueryDTO pictureQueryDTO);
 }

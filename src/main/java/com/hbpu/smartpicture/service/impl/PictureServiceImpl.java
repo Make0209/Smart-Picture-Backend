@@ -2,11 +2,15 @@ package com.hbpu.smartpicture.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.hbpu.smartpicture.constant.UserConstant;
 import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
@@ -34,15 +38,22 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -59,12 +70,22 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private final FilePictureUpload filePictureUpload;
     private final UrlPictureUpload urlPictureUpload;
     private final CosManager cosManager;
+    private final RedissonClient redissonClient;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    public PictureServiceImpl(UserService userService, FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload, CosManager cosManager) {
+    private final Cache<String, String> LOCAL_CACHE = Caffeine.newBuilder()
+                                                              .initialCapacity(1024) //初始容量
+                                                              .maximumSize(10_000) // 最大存储数量（10000条）
+                                                              .expireAfterWrite(Duration.ofMinutes(5)) // 缓存过期时间（5分钟）
+                                                              .build();
+
+    public PictureServiceImpl(UserService userService, FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload, CosManager cosManager, RedissonClient redissonClient, StringRedisTemplate stringRedisTemplate) {
         this.userService = userService;
         this.filePictureUpload = filePictureUpload;
         this.urlPictureUpload = urlPictureUpload;
         this.cosManager = cosManager;
+        this.redissonClient = redissonClient;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     /**
@@ -347,6 +368,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     /**
      * 批量上传图片
+     *
      * @param pictureUploadByBatchDTO 批量上传图片请求封装类
      * @param request                 用户请求
      * @return 返回成功上传图片的数量
@@ -416,6 +438,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     /**
      * 采用异步，删除目标图片
+     *
      * @param picture 目标图片
      */
     @Async
@@ -436,6 +459,92 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             String thumbnailPath = URLUtil.getPath(thumbnailUrl);
             cosManager.deleteObject(thumbnailPath);
         }
+    }
+
+    /**
+     * 从分级缓存中获取分页数据，采用分布式锁来解决缓存穿透
+     * @param pictureQueryDTO 分页请求封装类对象
+     * @return PictureVO类型的Page封装类
+     */
+    @Override
+    public Page<PictureVO> listPictureVOByPageWithCache(PictureQueryDTO pictureQueryDTO) {
+        long current = pictureQueryDTO.getCurrent();
+        long size = pictureQueryDTO.getPageSize();
+        // 构建Redis的key
+        // 将查询条件转换成Json字符串
+        String queryStr = JSONUtil.toJsonStr(pictureQueryDTO);
+        // 将字符串压缩成md5字符串
+        String hashKey = DigestUtils.md5DigestAsHex(queryStr.getBytes());
+        // 拼接组成RedisKey
+        String cacheKey = String.format("smart-picture:listPictureVOByPage:%s", hashKey);
+        // 1. 先从本地缓存获取数据
+        String localCache = LOCAL_CACHE.getIfPresent(cacheKey);
+        if (localCache != null) {
+            Page<PictureVO> bean = JSONUtil.toBean(localCache, Page.class);
+            return bean;
+        }
+        // 2. 如果本地缓存没有再从Redis中获取
+        // 获取操作对象
+        ValueOperations<String, String> stringStringValueOperations = stringRedisTemplate.opsForValue();
+        // 先从Redis中获取，如果有，先刷新本地缓存，然后将结果返回给前端
+        String objectFromRedis = stringStringValueOperations.get(cacheKey);
+        if (objectFromRedis != null) {
+            LOCAL_CACHE.put(cacheKey, objectFromRedis);
+            Page<PictureVO> bean = JSONUtil.toBean(objectFromRedis, Page.class);
+            return bean;
+        }
+        // 3. 如果本地缓存和Redis都没有，先从数据库查询，然后再刷新本地缓存和Redis缓存
+        // 采用分布式锁来解决缓存穿透
+        Page<PictureVO> pictureVOPage = null;
+        RLock lock = redissonClient.getLock(cacheKey);
+        try {
+            // 采用默认看门狗机制来续租
+            if (lock.tryLock(3,TimeUnit.SECONDS)) {
+                // 设置查询条件，只查询通过审核的
+                pictureQueryDTO.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+                // 查询数据库
+                Page<Picture> picturePage = this.page(
+                        new Page<>(current, size),
+                        this.getQueryWrapper(pictureQueryDTO)
+                );
+                pictureVOPage = this.getPictureVOPage(picturePage);
+                // 将查询结果存入Redis，过期时间使用固定随机数，避免缓存雪崩
+                int expiryTime = 300 + RandomUtil.randomInt(0, 300);
+                // 将结果放入Redis缓存
+                stringStringValueOperations.set(cacheKey, JSONUtil.toJsonStr(pictureVOPage), expiryTime, TimeUnit.SECONDS);
+                // 将结果放入本地缓存
+                LOCAL_CACHE.put(cacheKey, JSONUtil.toJsonStr(pictureVOPage));
+            } else {
+                // 如果没抢到锁，进行重试
+                int tries = 0;
+                while (tries++ < 5) {
+                    Thread.sleep(2000);
+                    // 1. 先从本地缓存获取数据
+                    String TryLocalCache = LOCAL_CACHE.getIfPresent(cacheKey);
+                    if (TryLocalCache != null) {
+                        Page<PictureVO> bean = JSONUtil.toBean(TryLocalCache, Page.class);
+                        return bean;
+                    }
+                    // 2. 如果本地缓存没有再从Redis中获取
+                    // 先从Redis中获取，如果有，先刷新本地缓存，然后将结果返回给前端
+                    String TryObjectFromRedis = stringStringValueOperations.get(cacheKey);
+                    if (TryObjectFromRedis != null) {
+                        LOCAL_CACHE.put(cacheKey, TryObjectFromRedis);
+                        Page<PictureVO> bean = JSONUtil.toBean(TryObjectFromRedis, Page.class);
+                        return bean;
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            log.error("抢锁时出现错误：{}", e.getMessage());
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+        return pictureVOPage;
     }
 
 }
