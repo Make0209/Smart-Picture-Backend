@@ -135,6 +135,8 @@ public class PictureController {
                 "没有权限删除该图片！"
         );
         ThrowUtils.throwIf(!pictureService.removeById(deleteRequest.getId()), ErrorCode.OPERATION_ERROR, "删除失败！");
+        // 删除图片成功后，同时把对象存储中的对象删除
+        pictureService.clearPicture(picture);
         return ResultUtils.success(true);
     }
 

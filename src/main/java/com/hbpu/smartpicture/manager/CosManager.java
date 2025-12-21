@@ -89,10 +89,20 @@ public class CosManager {
             picOperations.setIsPicInfo(1);
             // 创建处理规则列表
             List<PicOperations.Rule> rules = new ArrayList<>();
+            // 使用webp压缩图片
             PicOperations.Rule rule = new PicOperations.Rule();
             rule.setFileId(FileUtil.getName(webpKey));
             rule.setRule("imageMogr2/format/webp");
             rule.setBucket(bucket);
+            // 缩略图规则，大于20kb才进行处理
+            if (file.getSize() > 20 * 1024) {
+                PicOperations.Rule thumbnailRule = new PicOperations.Rule();
+                String thumbnailKey = FileUtil.mainName(webpKey) + "_thumbnail." + FileUtil.getSuffix(webpKey);
+                thumbnailRule.setFileId(thumbnailKey);
+                thumbnailRule.setRule(String.format("imageMogr2/thumbnail/%sx%s>", 128, 128));
+                thumbnailRule.setBucket(bucket);
+                rules.add(thumbnailRule);
+            }
             // 将处理规则加入列表
             rules.add(rule);
             // 放入图片处理选项类中
@@ -106,4 +116,14 @@ public class CosManager {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传失败！");
         }
     }
+
+    /**
+     * 删除对象
+     *
+     * @param key 文件 key
+     */
+    public void deleteObject(String key) throws CosClientException {
+        cosClient.deleteObject(bucket, key);
+    }
+
 }

@@ -138,4 +138,10 @@ public class Picture {
      */
     @Schema(description = "审核时间")
     private LocalDateTime reviewTime;
+
+    /**
+     * 缩略图url
+     */
+    @Schema(description = "缩略图url")
+    private String thumbnailUrl;
 }

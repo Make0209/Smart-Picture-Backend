@@ -52,4 +52,10 @@ public class UploadPictureResultDTO {
     @Schema(description = "图片格式")
     private String picFormat;
 
+    /**
+     * 缩略图url
+     */
+    @Schema(description = "缩略图url")
+    private String thumbnailUrl;
+
 }

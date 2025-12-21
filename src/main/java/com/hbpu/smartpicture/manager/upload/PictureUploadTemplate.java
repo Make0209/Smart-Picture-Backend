@@ -54,12 +54,25 @@ public abstract class PictureUploadTemplate {
         String realFileName = FileUtil.getName(putObjectResult.getCiUploadResult().getOriginalInfo().getKey());
         if (CollUtil.isNotEmpty(processedPic)) {
             CIObject compressedObject = processedPic.get(0);
-            return bulidResult(compressedObject, realFileName);
+            // 缩略图默认等于压缩图
+            CIObject thumbnailObject = compressedObject;
+            // 又生成缩略图，才获取缩略提
+            if (processedPic.size() > 1) {
+                thumbnailObject = processedPic.get(1);
+            }
+            return bulidResult(compressedObject, realFileName, thumbnailObject);
         }
         return bulidResult(imageInfo, putObjectResult, realFileName, file);
     }
 
-    private UploadPictureResultDTO bulidResult(CIObject compressedObject, String fileName) {
+    /**
+     * 封装返回结果
+     * @param compressedObject webp处理后的对象
+     * @param fileName 文件名
+     * @param thumbnailObject 缩放后的对象
+     * @return 返回上传结果封装类
+     */
+    private UploadPictureResultDTO bulidResult(CIObject compressedObject, String fileName, CIObject thumbnailObject) {
         int width = compressedObject.getWidth();
         int height = compressedObject.getHeight();
         double picScale = NumberUtil.round(width * 1.0 / height, 2).doubleValue();
@@ -72,6 +85,7 @@ public abstract class PictureUploadTemplate {
         uploadPictureResultDTO.setPicHeight(height);
         uploadPictureResultDTO.setPicScale(picScale);
         uploadPictureResultDTO.setPicFormat(compressedObject.getFormat());
+        uploadPictureResultDTO.setThumbnailUrl("https://" + thumbnailObject.getLocation());
         // 返回结果封装类
         return uploadPictureResultDTO;
     }

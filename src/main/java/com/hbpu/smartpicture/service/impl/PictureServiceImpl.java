@@ -3,6 +3,7 @@ package com.hbpu.smartpicture.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.URLUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -10,6 +11,7 @@ import com.hbpu.smartpicture.constant.UserConstant;
 import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
+import com.hbpu.smartpicture.manager.CosManager;
 import com.hbpu.smartpicture.manager.upload.FilePictureUpload;
 import com.hbpu.smartpicture.manager.upload.PictureUploadTemplate;
 import com.hbpu.smartpicture.manager.upload.UrlPictureUpload;
@@ -33,6 +35,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -55,11 +58,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private final UserService userService;
     private final FilePictureUpload filePictureUpload;
     private final UrlPictureUpload urlPictureUpload;
+    private final CosManager cosManager;
 
-    public PictureServiceImpl(UserService userService, FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload) {
+    public PictureServiceImpl(UserService userService, FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload, CosManager cosManager) {
         this.userService = userService;
         this.filePictureUpload = filePictureUpload;
         this.urlPictureUpload = urlPictureUpload;
+        this.cosManager = cosManager;
     }
 
     /**
@@ -79,9 +84,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         // 如果是更新，先查询数据库中有无该图片，因为先得有才能更新
         User currentUser = userService.getCurrentUser(request);
+        Picture oldPicture = null;
         if (pictureId != null) {
             // 检查要更新的图片是否存在
-            Picture oldPicture = this.getById(pictureId);
+            oldPicture = this.getById(pictureId);
             ThrowUtils.throwIf(
                     oldPicture == null,
                     ErrorCode.NOT_FOUND_ERROR,
@@ -117,6 +123,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         resetReviewStatus(picture, currentUser);
         // 根据id是否有值来判断更新还是插入
         boolean savaResult = this.saveOrUpdate(picture);
+        // 如果oldPicture存在则说明是更新，把就图片删除
+        if (oldPicture != null) {
+            clearPicture(oldPicture);
+        }
         ThrowUtils.throwIf(!savaResult, ErrorCode.OPERATION_ERROR, "上传失败！");
         Picture newPicture = this.getById(picture.getId());
         // 将VO对象返回
@@ -402,6 +412,30 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
         return uploadCount;
+    }
+
+    /**
+     * 采用异步，删除目标图片
+     * @param picture 目标图片
+     */
+    @Async
+    @Override
+    public void clearPicture(Picture picture) {
+        String url = picture.getUrl();
+        String path = URLUtil.getPath(url);
+        Long count = this.lambdaQuery().eq(Picture::getUrl, url).count();
+        // 如果图片链接大于说明图片链接出现复用，不执行删除
+        if (count > 1) {
+            return;
+        }
+        // 执行删除操作
+        cosManager.deleteObject(path);
+        // 请求该图片所对应的缩略图
+        String thumbnailUrl = picture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            String thumbnailPath = URLUtil.getPath(thumbnailUrl);
+            cosManager.deleteObject(thumbnailPath);
+        }
     }
 
 }

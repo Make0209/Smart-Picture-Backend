@@ -120,6 +120,12 @@ public class PictureVO implements Serializable {
     private UserVO user;
 
     /**
+     * 缩略图url
+     */
+    @Schema(description = "缩略图url")
+    private String thumbnailUrl;
+
+    /**
      * 封装类转对象
      */
     public static Picture voToObj(PictureVO pictureVO) {
