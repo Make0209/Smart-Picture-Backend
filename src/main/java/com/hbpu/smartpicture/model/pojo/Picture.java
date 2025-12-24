@@ -144,4 +144,10 @@ public class Picture {
      */
     @Schema(description = "缩略图url")
     private String thumbnailUrl;
+
+    /**
+     * 空间 id（为空表示公共空间）
+     */
+    @Schema(description = "空间 id（为空表示公共空间）")
+    private Long spaceId;
 }
