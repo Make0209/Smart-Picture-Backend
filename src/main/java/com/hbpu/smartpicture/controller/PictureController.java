@@ -15,10 +15,12 @@ import com.hbpu.smartpicture.exception.ThrowUtils;
 import com.hbpu.smartpicture.model.dto.picture.*;
 import com.hbpu.smartpicture.model.enums.PictureReviewStatusEnum;
 import com.hbpu.smartpicture.model.pojo.Picture;
+import com.hbpu.smartpicture.model.pojo.Space;
 import com.hbpu.smartpicture.model.pojo.User;
 import com.hbpu.smartpicture.model.vo.picture.PictureTagCategoryVO;
 import com.hbpu.smartpicture.model.vo.picture.PictureVO;
 import com.hbpu.smartpicture.service.PictureService;
+import com.hbpu.smartpicture.service.SpaceService;
 import com.hbpu.smartpicture.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,17 +33,17 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 图片功能接口
  */
-@Tag(name = "图片功能接口", description = "图片功能接口")
+@Tag(name = "PictureController", description = "图片功能接口")
 @RestController
 @RequestMapping("/picture")
 public class PictureController {
     private final PictureService pictureService;
     private final UserService userService;
+    private final SpaceService spaceService;
     private final StringRedisTemplate stringRedisTemplate;
 
     private final Cache<String, String> LOCAL_CACHE = Caffeine.newBuilder()
@@ -50,9 +52,10 @@ public class PictureController {
                                                               .expireAfterWrite(Duration.ofMinutes(5)) // 缓存过期时间（5分钟）
                                                               .build();
 
-    public PictureController(PictureService pictureService, UserService userService, StringRedisTemplate stringRedisTemplate) {
+    public PictureController(PictureService pictureService, UserService userService, SpaceService spaceService, StringRedisTemplate stringRedisTemplate) {
         this.pictureService = pictureService;
         this.userService = userService;
+        this.spaceService = spaceService;
         this.stringRedisTemplate = stringRedisTemplate;
     }
 
@@ -121,18 +124,7 @@ public class PictureController {
     @PostMapping("/delete")
     public BaseResponse<Boolean> deletePicture(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
-        User currentUser = userService.getCurrentUser(request);
-        Picture picture = pictureService.getById(deleteRequest.getId());
-        ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR, "要删除的图片不存在！");
-        ThrowUtils.throwIf(
-                !Objects.equals(picture.getUserId(), currentUser.getId()) &&
-                        !Objects.equals(currentUser.getUserRole(), "admin"),
-                ErrorCode.PARAMS_ERROR,
-                "没有权限删除该图片！"
-        );
-        ThrowUtils.throwIf(!pictureService.removeById(deleteRequest.getId()), ErrorCode.OPERATION_ERROR, "删除失败！");
-        // 删除图片成功后，同时把对象存储中的对象删除
-        pictureService.clearPicture(picture);
+        pictureService.deletePicture(deleteRequest, request);
         return ResultUtils.success(true);
     }
 
@@ -202,6 +194,11 @@ public class PictureController {
         // 查询数据库
         Picture picture = pictureService.getById(id);
         ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
+        // 校验图片权限，只能获取公共图片，无法获取私有图库中的图片
+        Long spaceId = picture.getSpaceId();
+        if (spaceId != null) {
+            pictureService.checkPictureAuth(request, picture);
+        }
         // 获取封装类
         return ResultUtils.success(pictureService.getPictureVO(picture, request));
     }
@@ -234,13 +231,13 @@ public class PictureController {
      */
     @Operation(summary = "分页获取图片VO对象", description = "分页获取图片VO对象")
     @PostMapping("/list/page/vo")
-    public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryDTO pictureQueryDTO) {
+    public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryDTO pictureQueryDTO, HttpServletRequest request) {
         long current = pictureQueryDTO.getCurrent();
         long size = pictureQueryDTO.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        // 设置查询条件，只查询通过审核的
-        pictureQueryDTO.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+        // 空间权限校验
+        checkSpaceAuth(pictureQueryDTO, request);
         // 查询数据库
         Page<Picture> picturePage = pictureService.page(
                 new Page<>(current, size),
@@ -258,14 +255,41 @@ public class PictureController {
      */
     @Operation(summary = "采用多级缓存分页获取图片VO对象", description = "分页获取图片VO对象")
     @PostMapping("/list/page/vo/cache")
-    public BaseResponse<Page<PictureVO>> listPictureVOByPageWithCache(@RequestBody PictureQueryDTO pictureQueryDTO) {
+    public BaseResponse<Page<PictureVO>> listPictureVOByPageWithCache(@RequestBody PictureQueryDTO pictureQueryDTO, HttpServletRequest request) {
         long current = pictureQueryDTO.getCurrent();
         long size = pictureQueryDTO.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20 || current <= 0 || size <= 0, ErrorCode.PARAMS_ERROR);
+        // 检验空间权限
+        checkSpaceAuth(pictureQueryDTO, request);
+        // 从缓存中进行查询
         Page<PictureVO> pictureVOPage = pictureService.listPictureVOByPageWithCache(pictureQueryDTO);
         ThrowUtils.throwIf(pictureVOPage == null, ErrorCode.SYSTEM_ERROR);
         return ResultUtils.success(pictureVOPage);
+    }
+
+    /**
+     * 检验空间权限
+     * @param pictureQueryDTO 分页查询封装类
+     * @param request 用户请求
+     */
+    private void checkSpaceAuth(PictureQueryDTO pictureQueryDTO, HttpServletRequest request) {
+        // 空间权限校验
+        Long spaceId = pictureQueryDTO.getSpaceId();
+        // 公开图库
+        if (spaceId == null) {
+            // 普通用户默认只能查看已过审的公开数据
+            pictureQueryDTO.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+            pictureQueryDTO.setNullSpaceId(true);
+        } else {
+            // 私有空间
+            User loginUser = userService.getCurrentUser(request);
+            Space space = spaceService.getById(spaceId);
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+            if (!loginUser.getId().equals(space.getUserId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+            }
+        }
     }
 
     /**
@@ -282,28 +306,7 @@ public class PictureController {
         if (pictureEditDTO == null || pictureEditDTO.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 在此处将实体类和 DTO 进行转换
-        Picture picture = new Picture();
-        BeanUtils.copyProperties(pictureEditDTO, picture);
-        // 注意将 list 转为 string
-        picture.setTags(JSONUtil.toJsonStr(pictureEditDTO.getTags()));
-        // 数据校验
-        pictureService.validPicture(picture);
-        User loginUser = userService.getCurrentUser(request);
-        // 判断是否存在
-        Picture oldPicture = pictureService.getById(pictureEditDTO.getId());
-        ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
-        // 仅本人或管理员可编辑
-        ThrowUtils.throwIf(
-                !oldPicture.getUserId().equals(loginUser.getId()) &&
-                        !Objects.equals(loginUser.getUserRole(), "admin"),
-                ErrorCode.NO_AUTH_ERROR
-        );
-        // 重置图片审核状态
-        pictureService.resetReviewStatus(picture, loginUser);
-        // 操作数据库
-        boolean result = pictureService.updateById(picture);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        pictureService.editPicture(pictureEditDTO, request);
         return ResultUtils.success(true);
     }
 

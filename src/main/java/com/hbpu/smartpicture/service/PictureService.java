@@ -3,10 +3,8 @@ package com.hbpu.smartpicture.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.hbpu.smartpicture.model.dto.picture.PictureQueryDTO;
-import com.hbpu.smartpicture.model.dto.picture.PictureReviewDTO;
-import com.hbpu.smartpicture.model.dto.picture.PictureUploadByBatchDTO;
-import com.hbpu.smartpicture.model.dto.picture.PictureUploadDTO;
+import com.hbpu.smartpicture.common.DeleteRequest;
+import com.hbpu.smartpicture.model.dto.picture.*;
 import com.hbpu.smartpicture.model.pojo.Picture;
 import com.hbpu.smartpicture.model.pojo.User;
 import com.hbpu.smartpicture.model.vo.picture.PictureVO;
@@ -97,4 +95,25 @@ public interface PictureService extends IService<Picture> {
      * @return 类型为PictureVO的分页对象
      */
     Page<PictureVO> listPictureVOByPageWithCache(PictureQueryDTO pictureQueryDTO);
+
+    /**
+     * 检验图片权限
+     * @param request 用户请求
+     * @param picture 目标图片对象
+     */
+    void checkPictureAuth(HttpServletRequest request, Picture picture);
+
+    /**
+     * 编辑图片
+     * @param pictureEditDTO 编辑图片请求封装类
+     * @param request 用户请求
+     */
+    void editPicture(PictureEditDTO pictureEditDTO, HttpServletRequest request);
+
+    /**
+     * 删除图片
+     * @param deleteRequest 删除请求封装类
+     * @param request 用户请求
+     */
+    void deletePicture(DeleteRequest deleteRequest, HttpServletRequest request);
 }

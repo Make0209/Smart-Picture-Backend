@@ -118,4 +118,15 @@ public class PictureQueryDTO extends PageRequest implements Serializable {
     @Schema(description = "审核时间")
     private LocalDateTime reviewTime;
 
+    /**
+     * 空间 id（为空表示公共空间）
+     */
+    @Schema(description = "空间 id（为空表示公共空间）")
+    private Long spaceId;
+
+    /**
+     * 是否只查询spaceId为null的数据
+     */
+    @Schema(description = "是否只查询spaceId为null的数据")
+    private boolean nullSpaceId;
 }

@@ -30,7 +30,7 @@ import java.nio.file.Paths;
 /**
  * 腾讯云对象存储文件接口
  */
-@Tag(name = "腾讯云对象存储文件接口")
+@Tag(name = "CosFileController")
 @RestController
 @RequestMapping("/cosfile")
 @Slf4j

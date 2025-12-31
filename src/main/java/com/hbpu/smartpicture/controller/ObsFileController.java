@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * 控制文件上传的接口
  */
-@Tag(name = "控制文件上传的接口", description = "控制文件上传的接口")
+@Tag(name = "ObsFileController", description = "控制文件上传的接口")
 @RestController
 @RequestMapping("/obs file")
 @Slf4j

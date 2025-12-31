@@ -13,8 +13,10 @@ import com.hbpu.smartpicture.model.dto.space.SpaceAddDTO;
 import com.hbpu.smartpicture.model.dto.space.SpaceEditDTO;
 import com.hbpu.smartpicture.model.dto.space.SpaceQueryDTO;
 import com.hbpu.smartpicture.model.dto.space.SpaceUpdateDTO;
+import com.hbpu.smartpicture.model.enums.SpaceLevelEnum;
 import com.hbpu.smartpicture.model.pojo.Space;
 import com.hbpu.smartpicture.model.pojo.User;
+import com.hbpu.smartpicture.model.vo.space.SpaceLevelVO;
 import com.hbpu.smartpicture.model.vo.space.SpaceVO;
 import com.hbpu.smartpicture.service.SpaceService;
 import com.hbpu.smartpicture.service.UserService;
@@ -25,12 +27,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * 空间功能接口
  */
-@Tag(name = "空间功能接口", description = "空间功能接口")
+@Tag(name = "SpaceController", description = "空间功能接口")
 @RestController
 @RequestMapping("/space")
 @Slf4j
@@ -45,14 +49,15 @@ public class SpaceController {
 
     /**
      * 创建空间接口
+     *
      * @param spaceAddDTO 创建空间请求信息封装类
-     * @param request 用户请求
+     * @param request     用户请求
      * @return 返回创建成功后的SpaceID
      */
     @Operation(summary = "创建空间接口", description = "创建空间接口")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
     @PostMapping("/add")
-    public BaseResponse<Long> addSpace(@RequestBody SpaceAddDTO  spaceAddDTO, HttpServletRequest request) {
+    public BaseResponse<Long> addSpace(@RequestBody SpaceAddDTO spaceAddDTO, HttpServletRequest request) {
         ThrowUtils.throwIf(spaceAddDTO == null, ErrorCode.PARAMS_ERROR);
         Long result = spaceService.addSpace(spaceAddDTO, request);
         return ResultUtils.success(result);
@@ -85,6 +90,7 @@ public class SpaceController {
 
     /**
      * 【管理员】更新空间信息
+     *
      * @param spaceUpdateDTO 更新空间请求封装类
      * @return 更新成功返回true
      */
@@ -193,7 +199,7 @@ public class SpaceController {
      * 编辑空间
      *
      * @param spaceEditDTO 空间编辑信息封装类
-     * @param request        用户请求
+     * @param request      用户请求
      * @return 编辑成功返回true
      */
     @Operation(summary = "编辑空间", description = "编辑空间")
@@ -224,6 +230,22 @@ public class SpaceController {
         boolean result = spaceService.updateById(space);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 获取空间等级列表信息
+     * @return 返回空间等级VO封装类
+     */
+    @Operation(summary = "获取空间等级列表信息", description = "获取空间等级列表信息")
+    @GetMapping("/list/level")
+    public BaseResponse<List<SpaceLevelVO>> listSpaceLevel() {
+        List<SpaceLevelVO> list = Arrays.stream(SpaceLevelEnum.values()).map(spaceLevelEnum -> new SpaceLevelVO(
+                spaceLevelEnum.getValue(),
+                spaceLevelEnum.getText(),
+                spaceLevelEnum.getMaxCount(),
+                spaceLevelEnum.getMaxSize()
+        )).toList();
+        return ResultUtils.success(list);
     }
 
 }

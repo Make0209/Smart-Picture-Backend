@@ -33,4 +33,10 @@ public class PictureUploadDTO implements Serializable {
      */
     @Schema(description = "文件名称")
     private String fileName;
+
+    /**
+     * 空间 id（为空表示公共空间）
+     */
+    @Schema(description = "空间 id（为空表示公共空间）")
+    private Long spaceId;
 }

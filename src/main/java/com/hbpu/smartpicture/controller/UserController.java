@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * 用户功能
  */
-@Tag(name = "用户功能", description = "用户功能")
+@Tag(name = "UserController", description = "用户功能")
 @RestController
 @RequestMapping("/user")
 public class UserController {
