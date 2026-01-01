@@ -23,6 +23,7 @@ import com.hbpu.smartpicture.service.PictureService;
 import com.hbpu.smartpicture.service.SpaceService;
 import com.hbpu.smartpicture.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
@@ -63,19 +64,16 @@ public class PictureController {
      * 上传图片
      *
      * @param file    目标文件
-     * @param id      图片id
+     * @param pictureUploadDTO  上传图片封装信息
      * @param request 用户请求
      * @return 图片信息封装类
      */
+    @Parameter(name = "file", description = "目标文件", required = true)
     @Operation(summary = "上传图片", description = "上传图片")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
     @PostMapping("/upload")
-    public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile file, @RequestParam(value = "id", required = false) Long id, HttpServletRequest request) {
+    public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile file, @RequestPart(value = "data", required = false) PictureUploadDTO pictureUploadDTO , HttpServletRequest request) {
         ThrowUtils.throwIf(file.isEmpty(), ErrorCode.PARAMS_ERROR);
-        PictureUploadDTO pictureUploadDTO = new PictureUploadDTO();
-        if (id != null) {
-            pictureUploadDTO.setId(id);
-        }
         PictureVO pictureVO = pictureService.uploadPicture(file, pictureUploadDTO, request);
         return ResultUtils.success(pictureVO);
     }

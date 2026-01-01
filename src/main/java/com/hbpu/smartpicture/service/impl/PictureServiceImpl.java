@@ -190,15 +190,17 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         transactionTemplate.execute(status -> {
             boolean savaResult = this.saveOrUpdate(picture);
             ThrowUtils.throwIf(!savaResult, ErrorCode.OPERATION_ERROR, "上传失败！");
-            boolean update = spaceService.lambdaUpdate().eq(Space::getId, finalSpaceId)
-                                         .setSql("totalSize = totalSize + " + picture.getPicSize())
-                                         .setSql("totalCount = totalCount + 1")
-                                         .update();
-            ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败！");
+            if (finalSpaceId != null) {
+                boolean update = spaceService.lambdaUpdate().eq(Space::getId, finalSpaceId)
+                                             .setSql("totalSize = totalSize + " + picture.getPicSize())
+                                             .setSql("totalCount = totalCount + 1")
+                                             .update();
+                ThrowUtils.throwIf(!update, ErrorCode.OPERATION_ERROR, "额度更新失败！");
+            }
             return picture;
         });
-        // 如果oldPicture存在则说明是更新，把就图片删除
-        if (oldPicture != null) {
+        // 如果oldPicture存在则说明是更新且spaceid存在，把就图片删除
+        if (oldPicture != null && finalSpaceId != null) {
             clearPicture(oldPicture);
             // 更新空间的额度
             spaceService.lambdaUpdate().eq(Space::getId, picture.getSpaceId())
@@ -520,7 +522,6 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             String thumbnailPath = URLUtil.getPath(thumbnailUrl);
             cosManager.deleteObject(thumbnailPath);
         }
-
     }
 
     /**
@@ -646,6 +647,10 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 判断是否存在
         Picture oldPicture = this.getById(pictureEditDTO.getId());
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
+        picture.setUserId(oldPicture.getUserId());
+//        if (oldPicture.getSpaceId() != null) {
+//            picture.setSpaceId(oldPicture.getSpaceId());
+//        }
         // 仅本人或管理员可编辑
         this.checkPictureAuth(request, picture);
         // 重置图片审核状态
@@ -663,10 +668,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 校验图片权限
         this.checkPictureAuth(request, picture);
         // 执行删除操作
-        // 校验权限
-        checkPictureAuth(request, picture);
         // 开启事务
-        transactionTemplate.execute(status -> {
+        Boolean deleteResult = transactionTemplate.execute(status -> {
             // 操作数据库
             boolean result = this.removeById(deleteRequest.getId());
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -682,9 +685,27 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
             return true;
         });
-        ThrowUtils.throwIf(!this.removeById(deleteRequest.getId()), ErrorCode.OPERATION_ERROR, "删除失败！");
+        ThrowUtils.throwIf(Boolean.FALSE.equals(deleteResult), ErrorCode.OPERATION_ERROR, "删除失败！");
+        //清理缓存
+        this.clearPictureListCache();
         // 删除图片成功后，同时把对象存储中的对象删除
         this.clearPicture(picture);
+    }
+
+    /**
+     * 清理图片列表相关的缓存
+     */
+    public void clearPictureListCache() {
+        // 1. 清理本地缓存 (Caffeine)
+        // 注意：如果是集群部署，这只能清理当前机器的本地缓存
+        LOCAL_CACHE.invalidateAll();
+
+        // 2. 清理 Redis 缓存 (模糊匹配)
+        String pattern = "smart-picture:listPictureVOByPage:*";
+        Set<String> keys = stringRedisTemplate.keys(pattern);
+        if (CollUtil.isNotEmpty(keys)) {
+            stringRedisTemplate.delete(keys);
+        }
     }
 }
 
