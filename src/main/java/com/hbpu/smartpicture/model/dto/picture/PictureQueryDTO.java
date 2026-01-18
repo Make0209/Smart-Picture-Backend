@@ -129,4 +129,17 @@ public class PictureQueryDTO extends PageRequest implements Serializable {
      */
     @Schema(description = "是否只查询spaceId为null的数据")
     private boolean nullSpaceId;
+
+    /**
+     * 开始编辑时间
+     */
+    @Schema(description = "开始编辑时间")
+    private LocalDateTime startEditTime;
+
+    /**
+     * 结束编辑时间
+     */
+    @Schema(description = "结束编辑时间")
+    private LocalDateTime endEditTime;
+
 }

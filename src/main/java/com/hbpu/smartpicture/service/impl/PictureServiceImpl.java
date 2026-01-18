@@ -248,6 +248,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Long reviewerId = pictureQueryDTO.getReviewerId();
         Long spaceId = pictureQueryDTO.getSpaceId();
         boolean nullSpaceId = pictureQueryDTO.isNullSpaceId();
+        LocalDateTime startEditTime = pictureQueryDTO.getStartEditTime();
+        LocalDateTime endEditTime = pictureQueryDTO.getEndEditTime();
         // 现根据搜索信息来匹配
         if (StrUtil.isNotBlank(searchText)) {
             queryWrapper.and(qw -> qw
@@ -272,6 +274,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         queryWrapper.eq(ObjUtil.isNotEmpty(picScale), Picture::getPicScale, picScale);
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewStatus), Picture::getReviewStatus, reviewStatus);
         queryWrapper.eq(ObjUtil.isNotEmpty(reviewerId), Picture::getReviewerId, reviewerId);
+        queryWrapper.ge(ObjUtil.isNotEmpty(startEditTime), Picture::getEditTime, startEditTime);
+        queryWrapper.le(ObjUtil.isNotEmpty(endEditTime), Picture::getEditTime, endEditTime);
         // JSON 数组查询
         if (CollUtil.isNotEmpty(tags)) {
             for (String tag : tags) {
