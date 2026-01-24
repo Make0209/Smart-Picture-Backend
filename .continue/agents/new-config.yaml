@@ -1,0 +1,36 @@
+# This is an example configuration file
+# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
+
+name: Example Config
+version: 1.0.0
+schema: v1
+
+# Define which models can be used
+# https://docs.continue.dev/customization/models
+models:
+  # 1️⃣ 聊天 / 解释 / 设计
+  - name: Chat - Qwen2.5 Coder 7B
+    provider: ollama
+    model: qwen2.5-coder:7b
+    apiBase: http://localhost:11434
+
+  # 2️⃣ 精准改代码（Edit 模式）
+  - name: Edit - DeepSeek Coder 6.7B
+    provider: ollama
+    model: deepseek-coder:6.7b
+    apiBase: http://localhost:11434
+
+  - name: Edit - CodeGemma 7b
+    provider: ollama
+    model: codegemma:7b
+    apiBase: http://localhost:11434
+
+  - name: Chat - DeepSeek-r1 14b
+    provider: ollama
+    model: deepseek-r1:14b
+    apiBase: http://localhost:11434
+
+# MCP Servers that Continue can access
+# https://docs.continue.dev/customization/mcp-tools
+mcpServers:
+  - uses: anthropic/memory-mcp

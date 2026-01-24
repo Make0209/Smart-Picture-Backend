@@ -4,39 +4,63 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.hbpu.smartpicture.mapper.PictureMapper">
 
+    <!-- 定义一个结果映射，用于将数据库查询结果映射到 Picture 对象 -->
     <resultMap id="BaseResultMap" type="com.hbpu.smartpicture.model.pojo.Picture">
+        <!-- 映射 id 字段 -->
         <id property="id" column="id" jdbcType="BIGINT"/>
+        <!-- 映射 url 字段 -->
         <result property="url" column="url" jdbcType="VARCHAR"/>
+        <!-- 映射 name 字段 -->
         <result property="name" column="name" jdbcType="VARCHAR"/>
+        <!-- 映射 introduction 字段 -->
         <result property="introduction" column="introduction" jdbcType="VARCHAR"/>
+        <!-- 映射 category 字段 -->
         <result property="category" column="category" jdbcType="VARCHAR"/>
+        <!-- 映射 tags 字段 -->
         <result property="tags" column="tags" jdbcType="VARCHAR"/>
+        <!-- 映射 picSize 字段 -->
         <result property="picSize" column="picSize" jdbcType="BIGINT"/>
+        <!-- 映射 picWidth 字段 -->
         <result property="picWidth" column="picWidth" jdbcType="INTEGER"/>
+        <!-- 映射 picHeight 字段 -->
         <result property="picHeight" column="picHeight" jdbcType="INTEGER"/>
+        <!-- 映射 picScale 字段 -->
         <result property="picScale" column="picScale" jdbcType="DOUBLE"/>
+        <!-- 映射 picFormat 字段 -->
         <result property="picFormat" column="picFormat" jdbcType="VARCHAR"/>
+        <!-- 映射 userId 字段 -->
         <result property="userId" column="userId" jdbcType="BIGINT"/>
+        <!-- 映射 createTime 字段 -->
         <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
+        <!-- 映射 editTime 字段 -->
         <result property="editTime" column="editTime" jdbcType="TIMESTAMP"/>
+        <!-- 映射 updateTime 字段 -->
         <result property="updateTime" column="updateTime" jdbcType="TIMESTAMP"/>
+        <!-- 映射 isDelete 字段 -->
         <result property="isDelete" column="isDelete" jdbcType="TINYINT"/>
+        <!-- 映射 reviewStatus 字段 -->
         <result property="reviewStatus" column="reviewStatus" jdbcType="INTEGER"/>
+        <!-- 映射 reviewMessage 字段 -->
         <result property="reviewMessage" column="reviewMessage" jdbcType="VARCHAR"/>
+        <!-- 映射 reviewerId 字段 -->
         <result property="reviewerId" column="reviewerId" jdbcType="BIGINT"/>
+        <!-- 映射 reviewTime 字段 -->
         <result property="reviewTime" column="reviewTime" jdbcType="TIMESTAMP"/>
+        <!-- 映射 thumbnailUrl 字段 -->
         <result property="thumbnailUrl" column="thumbnailUrl" jdbcType="VARCHAR"/>
+        <!-- 映射 spaceId 字段 -->
         <result property="spaceId" column="spaceId" jdbcType="BIGINT"/>
     </resultMap>
 
+    <!-- 定义一个 SQL 片段，用于在多个查询中重复使用列列表 -->
     <sql id="Base_Column_List">
-        id,url,name,
-        introduction,category,tags,
-        picSize,picWidth,picHeight,
-        picScale,picFormat,userId,
-        createTime,editTime,updateTime,
-        isDelete,reviewStatus,reviewMessage,
-        reviewerId,reviewTime,thumbnailUrl,
+        id, url, name,
+        introduction, category, tags,
+        picSize, picWidth, picHeight,
+        picScale, picFormat, userId,
+        createTime, editTime, updateTime,
+        isDelete, reviewStatus, reviewMessage,
+        reviewerId, reviewTime, thumbnailUrl,
         spaceId
     </sql>
 </mapper>

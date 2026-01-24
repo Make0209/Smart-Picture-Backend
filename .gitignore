@@ -36,3 +36,5 @@ build/
 application-local.yaml
 
 
+/.continue/
+/.continue/agents/
