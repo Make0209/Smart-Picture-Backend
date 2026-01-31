@@ -150,4 +150,10 @@ public class Picture {
      */
     @Schema(description = "空间 id（为空表示公共空间）")
     private Long spaceId;
+
+    /**
+     * 图片主色调
+     */
+    @Schema(description = "图片主色调")
+    private String picColor;
 }

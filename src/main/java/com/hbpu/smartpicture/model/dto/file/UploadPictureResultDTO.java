@@ -58,4 +58,9 @@ public class UploadPictureResultDTO {
     @Schema(description = "缩略图url")
     private String thumbnailUrl;
 
+    /**
+     * 图片主色调
+     */
+    @Schema(description = "图片主色调")
+    private String picColor;
 }

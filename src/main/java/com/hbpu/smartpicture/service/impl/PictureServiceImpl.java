@@ -32,6 +32,7 @@ import com.hbpu.smartpicture.model.vo.user.UserVO;
 import com.hbpu.smartpicture.service.PictureService;
 import com.hbpu.smartpicture.service.SpaceService;
 import com.hbpu.smartpicture.service.UserService;
+import com.hbpu.smartpicture.utils.ColorSimilarUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -48,12 +49,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.DigestUtils;
 
+import java.awt.*;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -102,7 +103,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
      * @return 返回图片信息封装类
      */
     @Override
-    public PictureVO uploadPicture(Object inputSource, PictureUploadDTO uploadDTO, HttpServletRequest request) {
+    public PictureVO uploadPicture(Object inputSource, PictureUploadDTO uploadDTO, HttpServletRequest request, boolean refreshCacheConfirm) {
         User currentUser = userService.getCurrentUser(request);
         ThrowUtils.throwIf(currentUser == null, ErrorCode.NO_AUTH_ERROR);
         // 校验空间是否存在
@@ -199,6 +200,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
             return picture;
         });
+        // 更新缓存
+        refreshCache(refreshCacheConfirm);
         // 如果oldPicture存在则说明是更新且spaceid存在，把就图片删除
         if (oldPicture != null && finalSpaceId != null) {
             clearPicture(oldPicture);
@@ -490,7 +493,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 PictureUploadDTO pictureUploadDTO = new PictureUploadDTO();
                 pictureUploadDTO.setFileName(namePrefix + (uploadCount + 1));
 //                log.info("图片链接：{}", imgUrl);
-                this.uploadPicture(imgUrl, pictureUploadDTO, request);
+                this.uploadPicture(imgUrl, pictureUploadDTO, request, false);
                 uploadCount++;
             } catch (Exception e) {
                 log.error("上传失败：{}", imgUrl);
@@ -500,6 +503,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 break;
             }
         }
+        // 更新缓存
+        refreshCache(true);
         return uploadCount;
     }
 
@@ -543,8 +548,15 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String queryStr = JSONUtil.toJsonStr(pictureQueryDTO);
         // 将字符串压缩成md5字符串
         String hashKey = DigestUtils.md5DigestAsHex(queryStr.getBytes());
-        // 拼接组成RedisKey
-        String cacheKey = String.format("smart-picture:listPictureVOByPage:%s", hashKey);
+        // ================== 2. 构建“列表版本号” ==================
+        String versionKey = "smart-picture:list:version";
+        String version = stringRedisTemplate.opsForValue().get(versionKey);
+        if (version == null) {
+            version = "1";
+            stringRedisTemplate.opsForValue().set(versionKey, version);
+        }
+        // ================== 3. 最终 Redis / 本地缓存 key ==================
+        String cacheKey = String.format("smart-picture:listPictureVOByPage:v%s:%s", version, hashKey);
         // 从分级缓存中获取
         Page<PictureVO> pictureVOPageFromCache = listFromCache(cacheKey);
         if (pictureVOPageFromCache != null) {
@@ -662,6 +674,24 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 操作数据库
         boolean result = this.updateById(picture);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 这些效果会直接展示给用户，所以需要判断是否清理缓存
+        boolean needRefreshCache = false;
+        // name
+        if (StrUtil.isNotBlank(pictureEditDTO.getName())
+                && !pictureEditDTO.getName().equals(oldPicture.getName())) {
+            needRefreshCache = true;
+        }
+        // category
+        if (StrUtil.isNotBlank(pictureEditDTO.getCategory())
+                && !pictureEditDTO.getCategory().equals(oldPicture.getCategory())) {
+            needRefreshCache = true;
+        }
+        // tags（注意：这里比较的是 JSON 字符串）
+        if (!StrUtil.equals(picture.getTags(), oldPicture.getTags())) {
+            needRefreshCache = true;
+        }
+        // 刷新缓存
+        refreshCache(needRefreshCache);
     }
 
     @Override
@@ -691,24 +721,67 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         });
         ThrowUtils.throwIf(Boolean.FALSE.equals(deleteResult), ErrorCode.OPERATION_ERROR, "删除失败！");
         //清理缓存
-        this.clearPictureListCache();
+        refreshCache(true);
         // 删除图片成功后，同时把对象存储中的对象删除
         this.clearPicture(picture);
     }
 
-    /**
-     * 清理图片列表相关的缓存
-     */
-    public void clearPictureListCache() {
-        // 1. 清理本地缓存 (Caffeine)
-        // 注意：如果是集群部署，这只能清理当前机器的本地缓存
-        LOCAL_CACHE.invalidateAll();
+    @Override
+    public List<PictureVO> searchPictureByColor(Long spaceId, String picColor, HttpServletRequest request) {
+        User currentUser = userService.getCurrentUser(request);
+        // 1. 校验参数
+        ThrowUtils.throwIf(spaceId == null || StrUtil.isBlank(picColor), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(currentUser == null, ErrorCode.NO_AUTH_ERROR);
+        // 2. 校验空间权限
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        if (!currentUser.getId().equals(space.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
+        }
+        // 3. 查询该空间下所有图片（必须有主色调）
+        List<Picture> pictureList = this.lambdaQuery()
+                                        .eq(Picture::getSpaceId, spaceId)
+                                        .isNotNull(Picture::getPicColor)
+                                        .list();
+        // 如果没有图片，直接返回空列表
+        if (CollUtil.isEmpty(pictureList)) {
+            return Collections.emptyList();
+        }
+        // 将目标颜色转为 Color 对象
+        Color targetColor = Color.decode(picColor);
+        // 4. 计算相似度并排序
+        List<Picture> sortedPictures = pictureList.stream()
+                                                  .sorted(Comparator.comparingDouble(picture -> {
+                                                      // 提取图片主色调
+                                                      String hexColor = picture.getPicColor();
+                                                      // 没有主色调的图片放到最后
+                                                      if (StrUtil.isBlank(hexColor)) {
+                                                          return Double.MAX_VALUE;
+                                                      }
+                                                      Color pictureColor = Color.decode(hexColor);
+                                                      // 越大越相似
+                                                      return -ColorSimilarUtils.calculateSimilarity(
+                                                              targetColor, pictureColor);
+                                                  }))
+                                                  // 取前 12 个
+                                                  .limit(12)
+                                                  .toList();
 
-        // 2. 清理 Redis 缓存 (模糊匹配)
-        String pattern = "smart-picture:listPictureVOByPage:*";
-        Set<String> keys = stringRedisTemplate.keys(pattern);
-        if (CollUtil.isNotEmpty(keys)) {
-            stringRedisTemplate.delete(keys);
+        // 转换为 PictureVO
+        return sortedPictures.stream()
+                             .map(PictureVO::objToVo)
+                             .collect(Collectors.toList());
+    }
+
+    /**
+     * 更新缓存
+     */
+    public void refreshCache(boolean refreshCacheConfirm) {
+        // 判断是否立即更新缓存
+        if (refreshCacheConfirm) {
+            // 更新缓存
+            LOCAL_CACHE.invalidateAll();
+            stringRedisTemplate.opsForValue().increment("smart-picture:list:version");
         }
     }
 }

@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.hbpu.smartpicture.annotation.AuthCheck;
+import com.hbpu.smartpicture.api.imagesearch.ImageSearchApiFacade;
+import com.hbpu.smartpicture.api.imagesearch.model.ImageSearchResult;
 import com.hbpu.smartpicture.common.BaseResponse;
 import com.hbpu.smartpicture.common.DeleteRequest;
 import com.hbpu.smartpicture.common.ResultUtils;
@@ -74,7 +76,7 @@ public class PictureController {
     @PostMapping("/upload")
     public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile file, @RequestPart(value = "data", required = false) PictureUploadDTO pictureUploadDTO , HttpServletRequest request) {
         ThrowUtils.throwIf(file.isEmpty(), ErrorCode.PARAMS_ERROR);
-        PictureVO pictureVO = pictureService.uploadPicture(file, pictureUploadDTO, request);
+        PictureVO pictureVO = pictureService.uploadPicture(file, pictureUploadDTO, request, true);
         return ResultUtils.success(pictureVO);
     }
 
@@ -90,7 +92,7 @@ public class PictureController {
     @PostMapping("/upload/url")
     public BaseResponse<PictureVO> uploadPictureByUrl(@RequestBody PictureUploadDTO pictureUploadDTO, HttpServletRequest request) {
         ThrowUtils.throwIf(pictureUploadDTO == null, ErrorCode.PARAMS_ERROR);
-        PictureVO pictureVO = pictureService.uploadPicture(pictureUploadDTO.getUrl(), pictureUploadDTO, request);
+        PictureVO pictureVO = pictureService.uploadPicture(pictureUploadDTO.getUrl(), pictureUploadDTO, request, true);
         return ResultUtils.success(pictureVO);
     }
 
@@ -338,6 +340,40 @@ public class PictureController {
         ThrowUtils.throwIf(pictureReviewDTO == null, ErrorCode.PARAMS_ERROR);
         pictureService.pictureReview(pictureReviewDTO, request);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 以图搜图接口
+     *
+     * @param searchPicture 搜索条件封装类
+     * @return 返回相似图片列表
+     */
+    @Operation(summary = "以图搜图接口", description = "以图搜图接口")
+    @PostMapping("/search/picture")
+    public BaseResponse<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureDTO searchPicture) {
+        ThrowUtils.throwIf(searchPicture == null, ErrorCode.PARAMS_ERROR);
+        Long pictureId = searchPicture.getPictureId();
+        ThrowUtils.throwIf(pictureId == null, ErrorCode.PARAMS_ERROR, "图片id为空！");
+        Picture picture = pictureService.getById(pictureId);
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR, "目标图片不存在！");
+        List<ImageSearchResult> imageSearchResults = ImageSearchApiFacade.searchImage(picture.getUrl());
+        return ResultUtils.success(imageSearchResults);
+    }
+
+    /**
+     * 颜色搜图接口
+     *
+     * @param searchPictureDTO 搜索信息封装类
+     * @param request          用户请求
+     * @return 返回相似度高的图片列表
+     */
+    @Operation(summary = "颜色搜图接口", description = "颜色搜图接口")
+    @PostMapping("/search/color")
+    public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorDTO searchPictureDTO, HttpServletRequest request) {
+        ThrowUtils.throwIf(searchPictureDTO == null, ErrorCode.PARAMS_ERROR);
+        List<PictureVO> pictureVOS = pictureService.searchPictureByColor(
+                searchPictureDTO.getSpaceId(), searchPictureDTO.getPicColor(), request);
+        return ResultUtils.success(pictureVOS);
     }
 
 }

@@ -10,6 +10,8 @@ import com.hbpu.smartpicture.model.pojo.User;
 import com.hbpu.smartpicture.model.vo.picture.PictureVO;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.List;
+
 /**
  * @author 马可
  * &#064;description  针对表【picture(图片)】的数据库操作Service
@@ -25,7 +27,7 @@ public interface PictureService extends IService<Picture> {
      * @param request   用户请求
      * @return 图片信息封装类
      */
-    PictureVO uploadPicture(Object inputSource, PictureUploadDTO uploadDTO, HttpServletRequest request);
+    PictureVO uploadPicture(Object inputSource, PictureUploadDTO uploadDTO, HttpServletRequest request, boolean refreshCacheConfirm);
 
     /**
      * 获取查询语句接口
@@ -116,4 +118,14 @@ public interface PictureService extends IService<Picture> {
      * @param request 用户请求
      */
     void deletePicture(DeleteRequest deleteRequest, HttpServletRequest request);
+
+    /**
+     * 根据颜色搜索图片
+     *
+     * @param spaceId 用户的空间id
+     * @param color   目标颜色
+     * @param request 用户请求
+     * @return 返回相似度排序后的列表
+     */
+    List<PictureVO> searchPictureByColor(Long spaceId, String color, HttpServletRequest request);
 }
