@@ -43,8 +43,6 @@ springdoc:
     - group: 'SmartPicture'
       paths-to-match: '/**'
       packages-to-scan: com.hbpu.smartpicture.controller
-knife4j:
-  enable: true
-  production: false
+
 
 

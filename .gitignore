@@ -38,3 +38,4 @@ application-local.yaml
 
 /.continue/
 /.continue/agents/
+/src/main/resources/application-prod.yaml
