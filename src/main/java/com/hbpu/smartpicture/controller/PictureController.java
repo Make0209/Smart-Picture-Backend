@@ -376,4 +376,20 @@ public class PictureController {
         return ResultUtils.success(pictureVOS);
     }
 
+    /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchDTO 图片批量编辑信息封装类
+     * @param request               用户请求
+     * @return 操作成功返回true
+     */
+    @Operation(summary = "批量编辑图片", description = "批量编辑图片")
+    @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @PostMapping("/edit/batch")
+    public BaseResponse<Boolean> editPictureByBatch(@RequestBody PictureEditByBatchDTO pictureEditByBatchDTO, HttpServletRequest request) {
+        ThrowUtils.throwIf(pictureEditByBatchDTO == null, ErrorCode.PARAMS_ERROR);
+        pictureService.editPictureByBatch(pictureEditByBatchDTO, request);
+        return ResultUtils.success(true);
+    }
+
 }

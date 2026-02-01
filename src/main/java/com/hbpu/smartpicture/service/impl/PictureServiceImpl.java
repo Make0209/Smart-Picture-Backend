@@ -46,6 +46,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.DigestUtils;
 
@@ -774,6 +775,55 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     }
 
     /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchDTO 批量编辑图片请求封装类
+     * @param request               用户请求
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void editPictureByBatch(PictureEditByBatchDTO pictureEditByBatchDTO, HttpServletRequest request) {
+        // 1. 获取参数
+        List<Long> pictureIdList = pictureEditByBatchDTO.getPictureIdList(); // 图片 id 列表
+        Long spaceId = pictureEditByBatchDTO.getSpaceId(); // 空间 id
+        String category = pictureEditByBatchDTO.getCategory(); // 分类
+        List<String> tags = pictureEditByBatchDTO.getTags(); // 标签
+        String nameRule = pictureEditByBatchDTO.getNameRule();
+        // 2. 校验参数
+        User currentUser = userService.getCurrentUser(request);
+        ThrowUtils.throwIf(pictureIdList == null || pictureIdList.isEmpty(), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(spaceId == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(currentUser == null, ErrorCode.NO_AUTH_ERROR);
+        // 3. 校验空间权限
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        ThrowUtils.throwIf(!currentUser.getId().equals(space.getUserId()), ErrorCode.NO_AUTH_ERROR, "没有空间访问权限");
+        // 4. 查询指定图片，仅选择需要的字段
+        List<Picture> pictureList = this.lambdaQuery()
+                                        .select(Picture::getId, Picture::getSpaceId)
+                                        .eq(Picture::getSpaceId, spaceId)
+                                        .in(Picture::getId, pictureIdList)
+                                        .list();
+        if (CollUtil.isEmpty(pictureList)) {
+            return;
+        }
+        // 5. 如果分类和标签有更新，则更新
+        pictureList.forEach(picture -> {
+            if (StrUtil.isNotEmpty(category)) {
+                picture.setCategory(category);
+            }
+            if (CollUtil.isNotEmpty(tags)) {
+                picture.setTags(JSONUtil.toJsonStr(tags));
+            }
+        });
+        // 6. 如果命名规则有更新，则更新
+        fillPictureWithNameRule(pictureList, nameRule);
+        // 7. 使用mybatis的批量更新，一次性更新完成
+        boolean result = this.updateBatchById(pictureList);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "批量更新图片信息失败");
+    }
+
+    /**
      * 更新缓存
      */
     public void refreshCache(boolean refreshCacheConfirm) {
@@ -784,6 +834,29 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             stringRedisTemplate.opsForValue().increment("smart-picture:list:version");
         }
     }
+
+    /**
+     * nameRule 格式：图片{序号}
+     *
+     * @param pictureList 图片列表
+     * @param nameRule    名称规则
+     */
+    private void fillPictureWithNameRule(List<Picture> pictureList, String nameRule) {
+        if (CollUtil.isEmpty(pictureList) || StrUtil.isBlank(nameRule)) { // 如果图片列表为空或名称规则为空，则返回
+            return;
+        }
+        long count = 1;
+        try {
+            for (Picture picture : pictureList) {
+                String pictureName = nameRule.replaceAll("\\{序号}", String.valueOf(count++));
+                picture.setName(pictureName);
+            }
+        } catch (Exception e) {
+            log.error("名称解析错误", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "名称解析错误");
+        }
+    }
+
 }
 
 

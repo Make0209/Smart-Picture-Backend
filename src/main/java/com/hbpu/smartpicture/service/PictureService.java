@@ -128,4 +128,12 @@ public interface PictureService extends IService<Picture> {
      * @return 返回相似度排序后的列表
      */
     List<PictureVO> searchPictureByColor(Long spaceId, String color, HttpServletRequest request);
+
+    /**
+     * 批量编辑图片
+     *
+     * @param pictureEditByBatchDTO 批量编辑图片请求封装类
+     * @param request               用户请求
+     */
+    void editPictureByBatch(PictureEditByBatchDTO pictureEditByBatchDTO, HttpServletRequest request);
 }
