@@ -11,6 +11,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.hbpu.smartpicture.api.aliyunai.AliYunAiApi;
+import com.hbpu.smartpicture.api.aliyunai.model.CreateOutPaintingTaskRequest;
+import com.hbpu.smartpicture.api.aliyunai.model.CreateOutPaintingTaskResponse;
 import com.hbpu.smartpicture.common.DeleteRequest;
 import com.hbpu.smartpicture.constant.UserConstant;
 import com.hbpu.smartpicture.exception.BusinessException;
@@ -83,8 +86,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                                                               .maximumSize(10_000) // 最大存储数量（10000条）
                                                               .expireAfterWrite(Duration.ofMinutes(5)) // 缓存过期时间（5分钟）
                                                               .build();
+    private final AliYunAiApi aliYunAiApi;
 
-    public PictureServiceImpl(UserService userService, FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload, CosManager cosManager, RedissonClient redissonClient, StringRedisTemplate stringRedisTemplate, SpaceService spaceService, TransactionTemplate transactionTemplate) {
+    public PictureServiceImpl(UserService userService, FilePictureUpload filePictureUpload, UrlPictureUpload urlPictureUpload, CosManager cosManager, RedissonClient redissonClient, StringRedisTemplate stringRedisTemplate, SpaceService spaceService, TransactionTemplate transactionTemplate, AliYunAiApi aliYunAiApi) {
         this.userService = userService;
         this.filePictureUpload = filePictureUpload;
         this.urlPictureUpload = urlPictureUpload;
@@ -93,6 +97,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         this.stringRedisTemplate = stringRedisTemplate;
         this.spaceService = spaceService;
         this.transactionTemplate = transactionTemplate;
+        this.aliYunAiApi = aliYunAiApi;
     }
 
     /**
@@ -821,6 +826,33 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 7. 使用mybatis的批量更新，一次性更新完成
         boolean result = this.updateBatchById(pictureList);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "批量更新图片信息失败");
+    }
+
+    /**
+     * 创建扩图任务
+     *
+     * @param taskDTO 创建扩图任务请求封装类
+     * @param request 用户请求
+     * @return {@link CreateOutPaintingTaskResponse} 创建扩图任务响应封装类
+     */
+    @Override
+    public CreateOutPaintingTaskResponse createOutPaintingTask(CreatePictureOutPaintingTaskDTO taskDTO, HttpServletRequest request) {
+        // 1. 获取参数
+        Long pictureId = taskDTO.getPictureId(); // 图片 id
+        // 2. 校验参数
+        Picture picture = Optional.ofNullable(this.getById(pictureId)).orElseThrow(
+                () -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图片不存在"));
+        // 3. 校验图片权限
+        checkPictureAuth(request, picture);
+        // 构建请求参数
+        CreateOutPaintingTaskRequest taskRequest = new CreateOutPaintingTaskRequest();
+        // 构建输入参数
+        CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
+        input.setImageUrl(picture.getUrl()); // 设置图片 URL
+        taskRequest.setInput(input); // 设置输入参数
+        BeanUtils.copyProperties(taskDTO, taskRequest); // 将参数复制到请求对象中
+        return aliYunAiApi.createOutPaintingTask(taskRequest); // 调用阿里云 AI 服务创建扩图任务
+
     }
 
     /**

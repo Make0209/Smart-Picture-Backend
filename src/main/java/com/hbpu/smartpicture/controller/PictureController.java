@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.hbpu.smartpicture.annotation.AuthCheck;
+import com.hbpu.smartpicture.api.aliyunai.AliYunAiApi;
+import com.hbpu.smartpicture.api.aliyunai.model.CreateOutPaintingTaskResponse;
+import com.hbpu.smartpicture.api.aliyunai.model.GetOutPaintingTaskResponse;
 import com.hbpu.smartpicture.api.imagesearch.ImageSearchApiFacade;
 import com.hbpu.smartpicture.api.imagesearch.model.ImageSearchResult;
 import com.hbpu.smartpicture.common.BaseResponse;
@@ -48,6 +51,7 @@ public class PictureController {
     private final UserService userService;
     private final SpaceService spaceService;
     private final StringRedisTemplate stringRedisTemplate;
+    private final AliYunAiApi aliYunAiApi;
 
     private final Cache<String, String> LOCAL_CACHE = Caffeine.newBuilder()
                                                               .initialCapacity(1024) //初始容量
@@ -55,11 +59,12 @@ public class PictureController {
                                                               .expireAfterWrite(Duration.ofMinutes(5)) // 缓存过期时间（5分钟）
                                                               .build();
 
-    public PictureController(PictureService pictureService, UserService userService, SpaceService spaceService, StringRedisTemplate stringRedisTemplate) {
+    public PictureController(PictureService pictureService, UserService userService, SpaceService spaceService, StringRedisTemplate stringRedisTemplate, AliYunAiApi aliYunAiApi) {
         this.pictureService = pictureService;
         this.userService = userService;
         this.spaceService = spaceService;
         this.stringRedisTemplate = stringRedisTemplate;
+        this.aliYunAiApi = aliYunAiApi;
     }
 
     /**
@@ -390,6 +395,41 @@ public class PictureController {
         ThrowUtils.throwIf(pictureEditByBatchDTO == null, ErrorCode.PARAMS_ERROR);
         pictureService.editPictureByBatch(pictureEditByBatchDTO, request);
         return ResultUtils.success(true);
+    }
+
+    /**
+     * 创建扩图任务接口
+     *
+     * @param createPictureOutPaintingTaskDTO 创建扩图任务封装类
+     * @param request                         用户请求
+     * @return 创建成功返回true
+     */
+    @Operation(summary = "创建扩图任务", description = "创建扩图任务")
+    @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @PostMapping("/task/out_painting/create")
+    public BaseResponse<CreateOutPaintingTaskResponse> createPictureOutPaintingTask(@RequestBody CreatePictureOutPaintingTaskDTO createPictureOutPaintingTaskDTO, HttpServletRequest request) {
+        ThrowUtils.throwIf(
+                createPictureOutPaintingTaskDTO == null || createPictureOutPaintingTaskDTO.getPictureId() == null,
+                ErrorCode.PARAMS_ERROR
+        );
+        CreateOutPaintingTaskResponse taskResponse = pictureService.createOutPaintingTask(
+                createPictureOutPaintingTaskDTO, request);
+        return ResultUtils.success(taskResponse);
+    }
+
+    /**
+     * 获取扩图任务结果接口
+     *
+     * @param taskId 扩图任务id
+     * @return 扩图任务结果封装类
+     */
+    @Operation(summary = "获取扩图任务结果", description = "获取扩图任务结果")
+    @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @PostMapping("/task/out_painting/result")
+    public BaseResponse<GetOutPaintingTaskResponse> getOutPaintingTaskResult(String taskId) {
+        ThrowUtils.throwIf(taskId == null, ErrorCode.PARAMS_ERROR, "任务id为空");
+        GetOutPaintingTaskResponse taskResponse = aliYunAiApi.getOutPaintingTask(taskId);
+        return ResultUtils.success(taskResponse);
     }
 
 }

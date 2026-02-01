@@ -3,6 +3,7 @@ package com.hbpu.smartpicture.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.hbpu.smartpicture.api.aliyunai.model.CreateOutPaintingTaskResponse;
 import com.hbpu.smartpicture.common.DeleteRequest;
 import com.hbpu.smartpicture.model.dto.picture.*;
 import com.hbpu.smartpicture.model.pojo.Picture;
@@ -136,4 +137,13 @@ public interface PictureService extends IService<Picture> {
      * @param request               用户请求
      */
     void editPictureByBatch(PictureEditByBatchDTO pictureEditByBatchDTO, HttpServletRequest request);
+
+    /**
+     * 创建扩图任务
+     *
+     * @param createPictureOutPaintingTaskDTO 创建扩图任务请求封装类
+     * @param request                         用户请求
+     * @return 扩图任务信息封装类
+     */
+    CreateOutPaintingTaskResponse createOutPaintingTask(CreatePictureOutPaintingTaskDTO createPictureOutPaintingTaskDTO, HttpServletRequest request);
 }
