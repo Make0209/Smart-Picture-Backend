@@ -2,10 +2,10 @@ package com.hbpu.smartpicture.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.dto.space.SpaceAddDTO;
 import com.hbpu.smartpicture.model.dto.space.SpaceQueryDTO;
 import com.hbpu.smartpicture.model.pojo.Space;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.vo.space.SpaceVO;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -61,4 +61,13 @@ public interface SpaceService extends IService<Space> {
      * @return 创建成功后的空间的id
      */
     Long addSpace(SpaceAddDTO spaceAddDTO, HttpServletRequest request);
+
+    /**
+     * 检查空间权限
+     *
+     * @param space   空间对象
+     * @param request 用户请求
+     * @return 是否有权限
+     */
+    Boolean checkSpaceAuth(Space space, HttpServletRequest request);
 }

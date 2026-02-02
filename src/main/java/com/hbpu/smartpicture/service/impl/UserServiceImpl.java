@@ -282,6 +282,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         return DigestUtils.md5DigestAsHex((SALT + password).getBytes());
     }
 
+    /**
+     * 判断是否为管理员
+     *
+     * @param request 用户请求
+     * @return 是否为管理员
+     */
+    @Override
+    public Boolean isAdmin(HttpServletRequest request) {
+        User user = getCurrentUser(request);
+        return user.getUserRole().equals("admin");
+    }
+
 
 }
 

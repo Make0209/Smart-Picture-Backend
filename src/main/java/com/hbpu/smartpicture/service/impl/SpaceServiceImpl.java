@@ -187,6 +187,13 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         }
     }
 
+    /**
+     * 添加空间
+     *
+     * @param spaceAddDTO 添加空间的封装类
+     * @param request     用户请求
+     * @return 返回添加成功后的空间id
+     */
     @Override
     public Long addSpace(SpaceAddDTO spaceAddDTO, HttpServletRequest request) {
         // 校验参数
@@ -238,6 +245,22 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 longObjectConcurrentHashMap.remove(space.getUserId());
             }
         }
+    }
+
+    /**
+     * 校验空间权限
+     *
+     * @param space   空间对象
+     * @param request 用户请求
+     * @return 返回校验结果
+     */
+    @Override
+    public Boolean checkSpaceAuth(Space space, HttpServletRequest request) {
+        // 获取当前用户
+        User currentUser = userService.getCurrentUser(request);
+        // 判断空间是否存在，以及当前用户是否是空间的创建者或者管理员
+        return space != null && (space.getUserId().equals(currentUser.getId()) || "admin".equals(
+                currentUser.getUserRole()));
     }
 }
 

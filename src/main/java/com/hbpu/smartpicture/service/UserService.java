@@ -1,10 +1,10 @@
 package com.hbpu.smartpicture.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.dto.user.UserQueryDTO;
 import com.hbpu.smartpicture.model.dto.user.UserRegisterDTO;
 import com.hbpu.smartpicture.model.pojo.User;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.hbpu.smartpicture.model.vo.user.UserLoginVO;
 import com.hbpu.smartpicture.model.vo.user.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -81,4 +81,12 @@ public interface UserService extends IService<User> {
      * @return 返回加密后的密码
      */
     String getEncryptedPassword(String password);
+
+    /**
+     * 判断是否为管理员
+     *
+     * @param request 用户请求
+     * @return 是否为管理员
+     */
+    Boolean isAdmin(HttpServletRequest request);
 }
