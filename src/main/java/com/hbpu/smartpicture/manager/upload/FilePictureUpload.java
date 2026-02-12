@@ -62,11 +62,11 @@ public class FilePictureUpload extends PictureUploadTemplate {
         );
         // 检查文件大小
         long fileSize = file.getSize();
-        final long MAX_FILE_SIZE = 1024 * 1024;
+        final long MAX_FILE_SIZE = 3 * 1024 * 1024;
         ThrowUtils.throwIf(
                 fileSize > MAX_FILE_SIZE,
                 ErrorCode.PARAMS_ERROR,
-                "文件大小不能超过2MB！"
+                "文件大小不能超过3MB！"
         );
         // 检查文件类型
         String suffix = FileUtil.getSuffix(file.getOriginalFilename());

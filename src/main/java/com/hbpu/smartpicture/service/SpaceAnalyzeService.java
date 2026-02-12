@@ -1,6 +1,7 @@
 package com.hbpu.smartpicture.service;
 
 import com.hbpu.smartpicture.model.dto.space.analyze.*;
+import com.hbpu.smartpicture.model.pojo.Space;
 import com.hbpu.smartpicture.model.vo.space.analyze.*;
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -55,4 +56,13 @@ public interface SpaceAnalyzeService {
      * @return 空间用户上传行为分析参数响应封装类
      */
     List<SpaceUserAnalyzeVO> getSpaceUserAnalyze(SpaceUserAnalyzeDTO spaceUserAnalyzeDTO, HttpServletRequest request);
+
+    /**
+     * 获取空间使用排行分析参数
+     *
+     * @param spaceRankAnalyzeDTO 空间使用排行分析参数封装类
+     * @param request             HTTP请求
+     * @return 空间使用排行分析参数响应封装类
+     */
+    List<Space> getSpaceRankAnalyze(SpaceRankAnalyzeDTO spaceRankAnalyzeDTO, HttpServletRequest request);
 }

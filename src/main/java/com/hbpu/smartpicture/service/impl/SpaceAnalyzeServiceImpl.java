@@ -242,9 +242,9 @@ public class SpaceAnalyzeServiceImpl implements SpaceAnalyzeService {
     }
 
     /**
-     * 获取空间用户分析结果
+     * 获取空间用户上传分析结果
      *
-     * @param spaceUserAnalyzeDTO 空间用户分析参数
+     * @param spaceUserAnalyzeDTO 空间用户上传分析参数
      * @param request             请求
      * @return 空间用户分析结果
      */
@@ -257,7 +257,10 @@ public class SpaceAnalyzeServiceImpl implements SpaceAnalyzeService {
         // 构建查询条件
         QueryWrapper<Picture> queryWrapper = new QueryWrapper<>();
         fillAnalyzeQueryWrapper(spaceUserAnalyzeDTO, queryWrapper);
-        queryWrapper.eq(ObjUtil.isNotNull(spaceUserAnalyzeDTO.getUserId()), "userId", spaceUserAnalyzeDTO.getUserId());
+        queryWrapper.eq(
+                ObjUtil.isNotNull(spaceUserAnalyzeDTO.getUserId()) && spaceUserAnalyzeDTO.getUserId() > 0, "userId",
+                spaceUserAnalyzeDTO.getUserId()
+        );
         // 选择时间维度，可选值：day, week, month，用于分组统计
         String timeDimension = spaceUserAnalyzeDTO.getTimeDimension();
         switch (timeDimension) {
@@ -285,6 +288,27 @@ public class SpaceAnalyzeServiceImpl implements SpaceAnalyzeService {
         }).toList();
 
 
+    }
+
+    /**
+     * 获取空间使用排行分析结果
+     *
+     * @param spaceRankAnalyzeDTO 空间使用排行分析参数
+     * @param request             请求
+     * @return 空间使用排行分析结果
+     */
+    @Override
+    public List<Space> getSpaceRankAnalyze(SpaceRankAnalyzeDTO spaceRankAnalyzeDTO, HttpServletRequest request) {
+        ThrowUtils.throwIf(spaceRankAnalyzeDTO == null, ErrorCode.PARAMS_ERROR);
+        // 仅管理员可查看空间排行
+        ThrowUtils.throwIf(!userService.isAdmin(request), ErrorCode.NO_AUTH_ERROR, "无权查看空间排行");
+        // 构造查询条件
+        QueryWrapper<Space> queryWrapper = new QueryWrapper<>();
+        queryWrapper.select("id", "spaceName", "userId", "totalSize")
+                    .orderByDesc("totalSize")
+                    .last("LIMIT " + spaceRankAnalyzeDTO.getTopN()); // 取前 N 名
+        // 查询结果
+        return spaceService.list(queryWrapper);
     }
 
 

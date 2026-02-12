@@ -7,6 +7,7 @@ import com.hbpu.smartpicture.constant.UserConstant;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
 import com.hbpu.smartpicture.model.dto.space.analyze.*;
+import com.hbpu.smartpicture.model.pojo.Space;
 import com.hbpu.smartpicture.model.vo.space.analyze.*;
 import com.hbpu.smartpicture.service.SpaceAnalyzeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,7 +25,7 @@ import java.util.List;
  * 空间分析控制器
  *
  **/
-@Tag(name = "SpaceAnalyzeController*/", description = "空间分析控制器*/")
+@Tag(name = "SpaceAnalyzeController", description = "空间分析控制器")
 @RestController
 @RequestMapping("/analyze")
 @Slf4j
@@ -125,6 +126,24 @@ public class SpaceAnalyzeController {
         List<SpaceUserAnalyzeVO> spaceUserAnalyze = spaceAnalyzeService.getSpaceUserAnalyze(
                 spaceUserAnalyzeDTO, request);
         return ResultUtils.success(spaceUserAnalyze);
+    }
+
+    /**
+     * 获取空间使用排名分析
+     *
+     * @param spaceRankAnalyzeDTO 空间排名分析参数
+     * @param request             用户请求
+     * @return 空间排名分析结果
+     */
+    @Operation(summary = "获取空间排名分析", description = "获取空间排名分析")
+    @PostMapping("/rank")
+    @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    public BaseResponse<List<Space>> getSpaceRankAnalyze(@RequestBody SpaceRankAnalyzeDTO spaceRankAnalyzeDTO, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(spaceRankAnalyzeDTO == null, ErrorCode.PARAMS_ERROR);
+        // 调用服务层获取空间排名分析结果
+        List<Space> spaceRankAnalyze = spaceAnalyzeService.getSpaceRankAnalyze(spaceRankAnalyzeDTO, request);
+        return ResultUtils.success(spaceRankAnalyze);
     }
 
 }
