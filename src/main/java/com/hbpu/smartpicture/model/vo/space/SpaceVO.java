@@ -92,6 +92,12 @@ public class SpaceVO implements Serializable {
     @Schema(description = "创建用户信息")
     private UserVO user;
 
+    /**
+     * 空间类型：0-私有 1-团队
+     */
+    @Schema(description = "空间类型：0-私有 1-团队")
+    private Integer spaceType;
+
 
     /**
      * 封装类转对象

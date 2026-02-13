@@ -1,5 +1,7 @@
 package com.hbpu.smartpicture.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
 import com.hbpu.smartpicture.common.BaseResponse;
 import com.hbpu.smartpicture.common.ResultUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -56,5 +58,30 @@ public class GlobalExceptionHandler {
     public BaseResponse<?> handleMaxSize() {
         return ResultUtils.error(ErrorCode.OPERATION_ERROR,"上传文件过大，请上传小于限制的文件！");
     }
+
+    /**
+     * 捕获用户未登录的异常
+     *
+     * @param e 未登录的异常
+     * @return 返回异常错误信息
+     */
+    @ExceptionHandler(NotLoginException.class)
+    public BaseResponse<?> notLoginException(NotLoginException e) {
+        log.error("NotLoginException", e);
+        return ResultUtils.error(ErrorCode.NOT_LOGIN_ERROR, e.getMessage());
+    }
+
+    /**
+     * 捕获用户没有权限的异常
+     *
+     * @param e 没有权限的异常
+     * @return 返回异常错误信息
+     */
+    @ExceptionHandler(NotPermissionException.class)
+    public BaseResponse<?> notPermissionExceptionHandler(NotPermissionException e) {
+        log.error("NotPermissionException", e);
+        return ResultUtils.error(ErrorCode.NO_AUTH_ERROR, e.getMessage());
+    }
+
 
 }

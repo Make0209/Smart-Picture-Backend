@@ -17,6 +17,8 @@ import com.hbpu.smartpicture.constant.UserConstant;
 import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
+import com.hbpu.smartpicture.manager.auth.annotation.SaSpaceCheckPermission;
+import com.hbpu.smartpicture.manager.auth.model.SpaceUserPermissionConstant;
 import com.hbpu.smartpicture.model.dto.picture.*;
 import com.hbpu.smartpicture.model.enums.PictureReviewStatusEnum;
 import com.hbpu.smartpicture.model.pojo.Picture;
@@ -78,6 +80,7 @@ public class PictureController {
     @Parameter(name = "file", description = "目标文件", required = true)
     @Operation(summary = "上传图片", description = "上传图片")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_UPLOAD)
     @PostMapping("/upload")
     public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile file, @RequestPart(value = "data", required = false) PictureUploadDTO pictureUploadDTO , HttpServletRequest request) {
         ThrowUtils.throwIf(file.isEmpty(), ErrorCode.PARAMS_ERROR);
@@ -94,6 +97,7 @@ public class PictureController {
      */
     @Operation(summary = "根据Url地址上传图片", description = "根据Url地址上传图片")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_UPLOAD)
     @PostMapping("/upload/url")
     public BaseResponse<PictureVO> uploadPictureByUrl(@RequestBody PictureUploadDTO pictureUploadDTO, HttpServletRequest request) {
         ThrowUtils.throwIf(pictureUploadDTO == null, ErrorCode.PARAMS_ERROR);
@@ -126,6 +130,7 @@ public class PictureController {
      */
     @Operation(summary = "删除图片", description = "删除图片")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_DELETE)
     @PostMapping("/delete")
     public BaseResponse<Boolean> deletePicture(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
@@ -200,10 +205,10 @@ public class PictureController {
         Picture picture = pictureService.getById(id);
         ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
         // 校验图片权限，只能获取公共图片，无法获取私有图库中的图片
-        Long spaceId = picture.getSpaceId();
-        if (spaceId != null) {
-            pictureService.checkPictureAuth(request, picture);
-        }
+//        Long spaceId = picture.getSpaceId();
+//        if (spaceId != null) {
+//            pictureService.checkPictureAuth(request, picture);
+//        }
         // 获取封装类
         return ResultUtils.success(pictureService.getPictureVO(picture, request));
     }
@@ -306,6 +311,7 @@ public class PictureController {
      */
     @Operation(summary = "编辑图片", description = "编辑图片")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_EDIT)
     @PostMapping("/edit")
     public BaseResponse<Boolean> editPicture(@RequestBody PictureEditDTO pictureEditDTO, HttpServletRequest request) {
         if (pictureEditDTO == null || pictureEditDTO.getId() <= 0) {
@@ -373,6 +379,7 @@ public class PictureController {
      * @return 返回相似度高的图片列表
      */
     @Operation(summary = "颜色搜图接口", description = "颜色搜图接口")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_VIEW)
     @PostMapping("/search/color")
     public BaseResponse<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorDTO searchPictureDTO, HttpServletRequest request) {
         ThrowUtils.throwIf(searchPictureDTO == null, ErrorCode.PARAMS_ERROR);
@@ -390,6 +397,7 @@ public class PictureController {
      */
     @Operation(summary = "批量编辑图片", description = "批量编辑图片")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_EDIT)
     @PostMapping("/edit/batch")
     public BaseResponse<Boolean> editPictureByBatch(@RequestBody PictureEditByBatchDTO pictureEditByBatchDTO, HttpServletRequest request) {
         ThrowUtils.throwIf(pictureEditByBatchDTO == null, ErrorCode.PARAMS_ERROR);
@@ -406,6 +414,7 @@ public class PictureController {
      */
     @Operation(summary = "创建扩图任务", description = "创建扩图任务")
     @AuthCheck(mustRole = UserConstant.ROLE_USER)
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_EDIT)
     @PostMapping("/task/out_painting/create")
     public BaseResponse<CreateOutPaintingTaskResponse> createPictureOutPaintingTask(@RequestBody CreatePictureOutPaintingTaskDTO createPictureOutPaintingTaskDTO, HttpServletRequest request) {
         ThrowUtils.throwIf(

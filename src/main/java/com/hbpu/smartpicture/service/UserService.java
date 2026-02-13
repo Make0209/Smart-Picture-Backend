@@ -89,4 +89,12 @@ public interface UserService extends IService<User> {
      * @return 是否为管理员
      */
     Boolean isAdmin(HttpServletRequest request);
+
+    /**
+     * 判断是否为管理员
+     *
+     * @param userId 用户id
+     * @return 是否为管理员
+     */
+    Boolean isAdmin(Long userId);
 }

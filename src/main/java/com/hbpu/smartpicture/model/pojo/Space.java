@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * 空间
  * &#064;TableName  space
  */
-@Schema(description = "空间")
+@Schema(description = "空间 &#064;TableName  space")
 @TableName(value ="space")
 @Data
 public class Space {
@@ -90,4 +90,11 @@ public class Space {
     @Schema(description = "是否删除")
     @TableLogic
     private Integer isDelete;
+
+    /**
+     * 空间类型：0-私有 1-团队
+     */
+    @Schema(description = "空间类型：0-私有 1-团队")
+    private Integer spaceType;
+
 }

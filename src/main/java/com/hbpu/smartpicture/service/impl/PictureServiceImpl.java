@@ -674,7 +674,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 //            picture.setSpaceId(oldPicture.getSpaceId());
 //        }
         // 仅本人或管理员可编辑
-        this.checkPictureAuth(request, picture);
+//        this.checkPictureAuth(request, picture);
         // 重置图片审核状态
         this.resetReviewStatus(picture, loginUser);
         // 操作数据库
@@ -706,7 +706,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture picture = this.getById(deleteRequest.getId());
         ThrowUtils.throwIf(picture == null, ErrorCode.PARAMS_ERROR, "要删除的图片不存在！");
         // 校验图片权限
-        this.checkPictureAuth(request, picture);
+//        this.checkPictureAuth(request, picture);
         // 执行删除操作
         // 开启事务
         Boolean deleteResult = transactionTemplate.execute(status -> {
@@ -843,7 +843,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture picture = Optional.ofNullable(this.getById(pictureId)).orElseThrow(
                 () -> new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图片不存在"));
         // 3. 校验图片权限
-        checkPictureAuth(request, picture);
+//        checkPictureAuth(request, picture);
         // 构建请求参数
         CreateOutPaintingTaskRequest taskRequest = new CreateOutPaintingTaskRequest();
         // 构建输入参数

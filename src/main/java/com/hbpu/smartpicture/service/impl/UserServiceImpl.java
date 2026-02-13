@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
+import com.hbpu.smartpicture.manager.auth.StpKit;
 import com.hbpu.smartpicture.mapper.UserMapper;
 import com.hbpu.smartpicture.model.dto.user.UserQueryDTO;
 import com.hbpu.smartpicture.model.dto.user.UserRegisterDTO;
@@ -147,6 +148,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 设置其值
         mapCache.put("token", token, 30, TimeUnit.MINUTES);
         mapCache.put("object", user, 30, TimeUnit.MINUTES);
+        // 登录成功并设置过期时间
+        StpKit.SPACE.login(user.getId(), 30 * 60);
+        StpKit.SPACE.getSession().set("user", user);
 
         return userLoginVO;
     }
@@ -288,9 +292,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
      * @param request 用户请求
      * @return 是否为管理员
      */
+
     @Override
     public Boolean isAdmin(HttpServletRequest request) {
         User user = getCurrentUser(request);
+        return user.getUserRole().equals("admin");
+    }
+
+    /**
+     * 判断是否为管理员（通过用户ID）
+     *
+     * @param userId 用户ID
+     * @return 是否为管理员
+     */
+    @Override
+    public Boolean isAdmin(Long userId) {
+        ThrowUtils.throwIf(userId == null, new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID不能为空"));
+        User user = this.getById(userId);
+        ThrowUtils.throwIf(user == null, new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在"));
         return user.getUserRole().equals("admin");
     }
 
