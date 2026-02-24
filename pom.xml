@@ -209,6 +209,21 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
+        <!-- ShardingSphere JDBC 运行在Java内部的自动分库分表框架-->
+        <!-- 分库分表 -->
+        <!-- Source: https://mvnrepository.com/artifact/org.apache.shardingsphere/shardingsphere-jdbc-core -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-jdbc</artifactId>
+            <version>5.5.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>2.2</version>
+        </dependency>
+
 
     </dependencies>
 

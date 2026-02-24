@@ -10,6 +10,7 @@ import org.springframework.beans.BeanUtils;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -130,6 +131,13 @@ public class PictureVO implements Serializable {
      */
     @Schema(description = "图片主色调")
     private String picColor;
+
+    /**
+     * 权限列表
+     */
+    @Schema(description = "权限列表")
+    private List<String> permissionList = new ArrayList<>();
+
 
     /**
      * 封装类转对象

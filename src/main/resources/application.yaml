@@ -1,11 +1,15 @@
 spring:
-#  数据库配置
+  #  数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3307/smart_picture
     username: root
     password: 1234
-# Redis配置
+  # 数据库配置 —— 改成 ShardingSphere 驱动, 当使用 ShardingSphere 时, 数据库就交给 ShardingSphere 管理了
+  #  datasource:
+  #    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+  #    url: jdbc:shardingsphere:classpath:sharding.yaml   # 指向下面的分片配置文件
+  # Redis配置
   data:
     redis:
       port: 6379
@@ -30,6 +34,7 @@ mybatis-plus:
       logic-delete-field: isDelete
       logic-delete-value: 1
       logic-not-delete-value: 0
+    enable-sql-runner: true
 # springdoc-openapi项目配置
 springdoc:
   swagger-ui:
@@ -43,6 +48,3 @@ springdoc:
     - group: 'SmartPicture'
       paths-to-match: '/**'
       packages-to-scan: com.hbpu.smartpicture.controller
-
-
-

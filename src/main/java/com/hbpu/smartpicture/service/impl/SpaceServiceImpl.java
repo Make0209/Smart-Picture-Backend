@@ -47,13 +47,15 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     private final UserService userService;
     private final TransactionTemplate transactionTemplate;
     private final SpaceUserService spaceUserService;
+    //    private final DynamicShardingManager dynamicShardingManager;
     // 使用 ConcurrentHashMap 来存储锁对象，每个key对应一个对象，他是线程安全的
     ConcurrentHashMap<Long, Object> longObjectConcurrentHashMap = new ConcurrentHashMap<>();
 
-    public SpaceServiceImpl(UserService userService, TransactionTemplate transactionTemplate, @Lazy SpaceUserService spaceUserService) {
+    public SpaceServiceImpl(UserService userService, TransactionTemplate transactionTemplate, @Lazy SpaceUserService spaceUserService /*@Lazy DynamicShardingManager dynamicShardingManager*/) {
         this.userService = userService;
         this.transactionTemplate = transactionTemplate;
         this.spaceUserService = spaceUserService;
+//        this.dynamicShardingManager = dynamicShardingManager;
     }
 
     /**
@@ -267,6 +269,8 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                         boolean result = spaceUserService.save(spaceUser);
                         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
                     }
+                    // 动态分表（进队团队空间生效）
+//                    dynamicShardingManager.createSpacePictureTable(space);
                     // 返回新写入的数据 id
                     return space.getId();
                 });

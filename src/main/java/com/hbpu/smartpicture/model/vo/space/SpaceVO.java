@@ -9,6 +9,8 @@ import org.springframework.beans.BeanUtils;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 返回给前端的Space封装类
@@ -97,6 +99,13 @@ public class SpaceVO implements Serializable {
      */
     @Schema(description = "空间类型：0-私有 1-团队")
     private Integer spaceType;
+
+    /**
+     * 权限列表
+     */
+    @Schema(description = "权限列表")
+    private List<String> permissionList = new ArrayList<>();
+
 
 
     /**

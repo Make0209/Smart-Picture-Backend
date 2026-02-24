@@ -6,7 +6,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-@SpringBootApplication
+@SpringBootApplication(
+        excludeName = {
+                "org.apache.shardingsphere.spring.boot.ShardingSphereAutoConfiguration"
+        }
+)
 @EnableAspectJAutoProxy(exposeProxy = true)
 @EnableAsync
 @MapperScan("com.hbpu.smartpicture.mapper")

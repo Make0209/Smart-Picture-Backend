@@ -9,6 +9,7 @@ import com.hbpu.smartpicture.constant.UserConstant;
 import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
+import com.hbpu.smartpicture.manager.auth.SpaceUserAuthManager;
 import com.hbpu.smartpicture.model.dto.space.SpaceAddDTO;
 import com.hbpu.smartpicture.model.dto.space.SpaceEditDTO;
 import com.hbpu.smartpicture.model.dto.space.SpaceQueryDTO;
@@ -41,10 +42,12 @@ import java.util.Objects;
 public class SpaceController {
     private final SpaceService spaceService;
     private final UserService userService;
+    private final SpaceUserAuthManager spaceUserAuthManager;
 
-    public SpaceController(SpaceService spaceService, UserService userService) {
+    public SpaceController(SpaceService spaceService, UserService userService, SpaceUserAuthManager spaceUserAuthManager) {
         this.spaceService = spaceService;
         this.userService = userService;
+        this.spaceUserAuthManager = spaceUserAuthManager;
     }
 
     /**
@@ -149,8 +152,12 @@ public class SpaceController {
         // 查询数据库
         Space space = spaceService.getById(id);
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
+        // 设置当前用户权限列表
+        SpaceVO spaceVO = spaceService.getSpaceVO(space, request);
+        List<String> permissionList = spaceUserAuthManager.getPermissionList(space, request);
+        spaceVO.setPermissionList(permissionList);
         // 获取封装类
-        return ResultUtils.success(spaceService.getSpaceVO(space, request));
+        return ResultUtils.success(spaceVO);
     }
 
     /**

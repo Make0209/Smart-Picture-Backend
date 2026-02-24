@@ -17,6 +17,8 @@ import com.hbpu.smartpicture.constant.UserConstant;
 import com.hbpu.smartpicture.exception.BusinessException;
 import com.hbpu.smartpicture.exception.ErrorCode;
 import com.hbpu.smartpicture.exception.ThrowUtils;
+import com.hbpu.smartpicture.manager.auth.SpaceUserAuthManager;
+import com.hbpu.smartpicture.manager.auth.StpKit;
 import com.hbpu.smartpicture.manager.auth.annotation.SaSpaceCheckPermission;
 import com.hbpu.smartpicture.manager.auth.model.SpaceUserPermissionConstant;
 import com.hbpu.smartpicture.model.dto.picture.*;
@@ -60,13 +62,15 @@ public class PictureController {
                                                               .maximumSize(10_000) // 最大存储数量（10000条）
                                                               .expireAfterWrite(Duration.ofMinutes(5)) // 缓存过期时间（5分钟）
                                                               .build();
+    private final SpaceUserAuthManager spaceUserAuthManager;
 
-    public PictureController(PictureService pictureService, UserService userService, SpaceService spaceService, StringRedisTemplate stringRedisTemplate, AliYunAiApi aliYunAiApi) {
+    public PictureController(PictureService pictureService, UserService userService, SpaceService spaceService, StringRedisTemplate stringRedisTemplate, AliYunAiApi aliYunAiApi, SpaceUserAuthManager spaceUserAuthManager) {
         this.pictureService = pictureService;
         this.userService = userService;
         this.spaceService = spaceService;
         this.stringRedisTemplate = stringRedisTemplate;
         this.aliYunAiApi = aliYunAiApi;
+        this.spaceUserAuthManager = spaceUserAuthManager;
     }
 
     /**
@@ -205,12 +209,20 @@ public class PictureController {
         Picture picture = pictureService.getById(id);
         ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
         // 校验图片权限，只能获取公共图片，无法获取私有图库中的图片
-//        Long spaceId = picture.getSpaceId();
-//        if (spaceId != null) {
-//            pictureService.checkPictureAuth(request, picture);
-//        }
+        Long spaceId = picture.getSpaceId();
+        Space space = null;
+        if (spaceId != null) {
+            boolean hasPermission = StpKit.SPACE.hasPermission(SpaceUserPermissionConstant.PICTURE_VIEW);
+            ThrowUtils.throwIf(!hasPermission, ErrorCode.NO_AUTH_ERROR);
+            space = spaceService.getById(picture.getSpaceId());
+            ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
+        }
+        // 设置用户权限列表
+        List<String> permissionList = spaceUserAuthManager.getPermissionList(space, request);
+        PictureVO pictureVO = pictureService.getPictureVO(picture, request);
+        pictureVO.setPermissionList(permissionList);
         // 获取封装类
-        return ResultUtils.success(pictureService.getPictureVO(picture, request));
+        return ResultUtils.success(pictureVO);
     }
 
     /**
