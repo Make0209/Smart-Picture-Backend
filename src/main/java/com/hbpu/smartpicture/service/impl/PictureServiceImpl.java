@@ -118,9 +118,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             Space space = spaceService.getById(spaceId);
             ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
             // 必须空间创建人（管理员）才能上传
-            if (!currentUser.getId().equals(space.getUserId())) {
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
-            }
+//            if (!currentUser.getId().equals(space.getUserId())) {
+//                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+//            }
             // 校验额度
             if (space.getTotalCount() >= space.getMaxCount()) {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "空间条数不足");
@@ -146,11 +146,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             );
             // 检查用户权限
             // 如果不是本人并且也不是管理员就没有权限
-            ThrowUtils.throwIf(
-                    !oldPicture.getUserId().equals(currentUser.getId()) &&
-                            !UserConstant.ROLE_ADMIN.equals(currentUser.getUserRole()),
-                    ErrorCode.NO_AUTH_ERROR
-            );
+//            ThrowUtils.throwIf(
+//                    !oldPicture.getUserId().equals(currentUser.getId()) &&
+//                            !UserConstant.ROLE_ADMIN.equals(currentUser.getUserRole()),
+//                    ErrorCode.NO_AUTH_ERROR
+//            );
             // 校验空间是否一致
             //如果没传spaceid，则直接复用图片原有的spaceid，这样也兼容了公共图库
             if (spaceId == null) {

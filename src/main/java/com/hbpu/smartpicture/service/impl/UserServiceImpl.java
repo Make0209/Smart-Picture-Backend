@@ -151,6 +151,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 登录成功并设置过期时间
         StpKit.SPACE.login(user.getId(), 30 * 60);
         StpKit.SPACE.getSession().set("user", user);
+        // ↓ 新增：将 space-token 也返回给前端
+        String spaceToken = StpKit.SPACE.getTokenValue();
+        userLoginVO.setSpaceToken(spaceToken);
 
         return userLoginVO;
     }

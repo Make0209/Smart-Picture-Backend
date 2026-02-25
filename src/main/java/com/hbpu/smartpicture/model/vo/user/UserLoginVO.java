@@ -70,4 +70,10 @@ public class UserLoginVO implements Serializable {
      */
     @Schema(description = "用户token")
     private String token;
+
+    /**
+     * Sa-Token 空间权限 Token（用于团队空间权限校验）
+     */
+    @Schema(description = "Sa-Token 空间权限 Token（用于团队空间权限校验）")
+    private String spaceToken;
 }

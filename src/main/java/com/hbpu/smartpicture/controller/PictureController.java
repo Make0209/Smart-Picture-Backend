@@ -36,7 +36,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,9 +53,7 @@ public class PictureController {
     private final PictureService pictureService;
     private final UserService userService;
     private final SpaceService spaceService;
-    private final StringRedisTemplate stringRedisTemplate;
     private final AliYunAiApi aliYunAiApi;
-
     private final Cache<String, String> LOCAL_CACHE = Caffeine.newBuilder()
                                                               .initialCapacity(1024) //初始容量
                                                               .maximumSize(10_000) // 最大存储数量（10000条）
@@ -64,11 +61,10 @@ public class PictureController {
                                                               .build();
     private final SpaceUserAuthManager spaceUserAuthManager;
 
-    public PictureController(PictureService pictureService, UserService userService, SpaceService spaceService, StringRedisTemplate stringRedisTemplate, AliYunAiApi aliYunAiApi, SpaceUserAuthManager spaceUserAuthManager) {
+    public PictureController(PictureService pictureService, UserService userService, SpaceService spaceService, AliYunAiApi aliYunAiApi, SpaceUserAuthManager spaceUserAuthManager) {
         this.pictureService = pictureService;
         this.userService = userService;
         this.spaceService = spaceService;
-        this.stringRedisTemplate = stringRedisTemplate;
         this.aliYunAiApi = aliYunAiApi;
         this.spaceUserAuthManager = spaceUserAuthManager;
     }
@@ -220,6 +216,10 @@ public class PictureController {
         // 设置用户权限列表
         List<String> permissionList = spaceUserAuthManager.getPermissionList(space, request);
         PictureVO pictureVO = pictureService.getPictureVO(picture, request);
+        if (pictureVO.getUserId().equals(userService.getCurrentUser(request).getId())) {
+            permissionList.add(SpaceUserPermissionConstant.PICTURE_DELETE);
+            permissionList.add(SpaceUserPermissionConstant.PICTURE_EDIT);
+        }
         pictureVO.setPermissionList(permissionList);
         // 获取封装类
         return ResultUtils.success(pictureVO);
@@ -252,6 +252,7 @@ public class PictureController {
      * @return 分页图片VO对象封装类
      */
     @Operation(summary = "分页获取图片VO对象", description = "分页获取图片VO对象")
+    @SaSpaceCheckPermission(value = SpaceUserPermissionConstant.PICTURE_VIEW)
     @PostMapping("/list/page/vo")
     public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryDTO pictureQueryDTO, HttpServletRequest request) {
         long current = pictureQueryDTO.getCurrent();
@@ -259,7 +260,7 @@ public class PictureController {
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
         // 空间权限校验
-        checkSpaceAuth(pictureQueryDTO, request);
+//        checkSpaceAuth(pictureQueryDTO, request);
         // 查询数据库
         Page<Picture> picturePage = pictureService.page(
                 new Page<>(current, size),
