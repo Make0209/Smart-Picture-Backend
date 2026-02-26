@@ -1,39 +1,149 @@
-# Smart Picture
+# Smart Picture Backend
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+智能图片管理系统后端服务，提供强大的图片管理和AI增强功能，支持个人和团队协作使用。
 
-#### 软件架构
-软件架构说明
+## 🌟 功能特性
 
+### 图片管理
 
-#### 安装教程
+- **多样化上传**：支持本地文件上传和URL链接上传
+- **智能识别**：自动提取图片尺寸、格式、体积、主色调等信息
+- **标签分类**：灵活的标签和分类系统，便于图片组织管理
+- **批量操作**：支持批量上传、编辑、删除图片
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+### AI增强功能
 
-#### 使用说明
+- **AI扩图**：集成阿里云AI技术，实现智能图片扩展
+- **图片审核**：自动内容审核，确保图片合规性
+- **智能搜索**：支持以图搜图和颜色搜图功能
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+### 工作空间管理
 
-#### 参与贡献
+- **空间创建**：支持个人和团队工作空间
+- **权限控制**：精细化角色权限（浏览者、编辑者、管理员）
+- **协作分享**：支持团队成员协作管理图片资源
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+### 存储与扩展
 
+- **云存储集成**：支持腾讯云COS和华为云OBS
+- **分库分表**：基于ShardingSphere实现海量数据存储
+- **高性能缓存**：集成Redis和Caffeine双重缓存机制
 
-#### 特技
+## 🛠️ 技术架构
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+### 后端技术栈
+
+- **框架**：Spring Boot 3.5.9
+- **持久层**：MyBatis-Plus + MySQL
+- **缓存**：Redis + Caffeine
+- **权限**：JWT + Sa-Token
+- **分布式**：Redisson分布式锁
+- **API文档**：Knife4j + OpenAPI 3.0
+
+### 核心功能模块
+
+- **用户管理**：用户注册、登录、权限验证
+- **空间管理**：工作空间创建、成员管理、权限分配
+- **图片服务**：上传、存储、检索、AI处理
+- **安全管理**：内容审核、访问控制、数据加密
+
+## 🚀 快速开始
+
+### 环境准备
+
+- Java 17+
+- Maven 3.6+
+- MySQL 8.0+
+- Redis 6.0+
+- 腾讯云COS或华为云OBS账户（可选）
+
+### 项目配置
+
+1. 克隆项目到本地
+2. 修改 `application.yaml` 配置数据库连接信息
+3. 创建数据库并执行SQL脚本
+4. 如需使用云存储，配置相应云服务商参数
+5. 如需使用AI功能，配置阿里云AI密钥
+
+### 启动服务
+
+```bash
+# 使用Maven启动
+mvn spring-boot:run
+
+# 或打包后运行
+mvn package
+java -jar target/SmartPictureBackend-0.0.1-SNAPSHOT.jar
+```
+
+## 🔧 接口文档
+
+项目集成了Knife4j在线API文档，启动服务后访问：
+
+- 文档地址：`http://localhost:8080/api/doc.html`
+- OpenAPI地址：`http://localhost:8080/api/v3/api-docs`
+
+## 💾 数据库设计
+
+系统采用MySQL存储核心数据，主要包含以下表结构：
+
+- **user**：用户信息表
+- **space**：工作空间表
+- **space_user**：空间用户关系表
+- **picture**：图片信息表
+
+## 🔐 安全特性
+
+- JWT Token认证机制
+- Sa-Token权限管理
+- 接口访问频率限制
+- 图片内容审核机制
+- SQL注入防护
+- XSS攻击防护
+
+## 📦 部署建议
+
+### 生产环境配置
+
+- 使用独立的MySQL集群
+- 配置Redis哨兵或集群模式
+- 使用Nginx做反向代理和负载均衡
+- 配置SSL证书启用HTTPS
+- 使用云存储服务存储图片文件
+
+### 性能优化
+
+- 启用Redis缓存热点数据
+- 配置CDN加速图片访问
+- 合理设置数据库连接池参数
+- 使用分库分表处理大数据量场景
+
+## 🤝 贡献指南
+
+欢迎提交Issue和Pull Request帮助改进项目！
+
+### 开发规范
+
+- 代码风格遵循阿里巴巴Java开发手册
+- 提交信息使用约定式提交规范
+- 所有功能需要单元测试覆盖
+
+## 📄 许可证
+
+本项目采用 MIT 许可证，详情请参见 [LICENSE](./LICENSE) 文件。
+
+## 🆘 支持
+
+如有问题，请通过以下方式获得支持：
+
+- 提交 Issue
+- 查阅官方文档
+- 联系项目维护者
+
+---
+
+<div align="center">
+
+感谢您的关注和支持！⭐
+
+</div>
