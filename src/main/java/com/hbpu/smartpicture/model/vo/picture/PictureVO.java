@@ -133,6 +133,12 @@ public class PictureVO implements Serializable {
     private String picColor;
 
     /**
+     * 空间 id
+     */
+    @Schema(description = "空间 id")
+    private Long spaceId;
+
+    /**
      * 权限列表
      */
     @Schema(description = "权限列表")

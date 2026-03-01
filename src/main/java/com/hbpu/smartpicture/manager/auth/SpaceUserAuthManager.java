@@ -33,15 +33,12 @@ public class SpaceUserAuthManager {
 
     public static final SpaceUserAuthConfig SPACE_USER_AUTH_CONFIG;
 
-
     /*
       静态代码块：在类加载时执行，用于初始化空间用户权限配置
       从资源文件中读取JSON配置并转换为Java对象
      */
     static {
-        // 从类路径下的 biz/SpaceUserAuthConfig.json 文件中读取JSON配置内容
         String json = ResourceUtil.readUtf8Str("biz/SpaceUserAuthConfig.json");
-        // 将JSON字符串转换为 SpaceUserAuthConfig 配置对象，并赋值给静态常量
         SPACE_USER_AUTH_CONFIG = JSONUtil.toBean(json, SpaceUserAuthConfig.class);
     }
 
@@ -52,42 +49,45 @@ public class SpaceUserAuthManager {
      * @return 返回该角色拥有的权限列表，如果角色为空或不存在则返回空列表
      */
     public List<String> getPermissionsByRole(String spaceUserRole) {
-        // 判断传入的角色标识是否为空，如果为空则直接返回空列表
         if (StrUtil.isBlank(spaceUserRole)) {
             return new ArrayList<>();
         }
-        // 从配置中查找匹配的角色对象
-        // 使用Stream流遍历所有角色，通过filter过滤出key与传入角色标识相同的角色
         SpaceUserRole role = SPACE_USER_AUTH_CONFIG.getRoles().stream()
-                                                   .filter(r -> spaceUserRole.equals(r.getKey()))  // 过滤条件：角色key相等
-                                                   .findFirst()  // 获取第一个匹配的角色
-                                                   .orElse(null);  // 如果没找到则返回null
-        // 如果没有找到匹配的角色，返回空列表
+                                                   .filter(r -> spaceUserRole.equals(r.getKey()))
+                                                   .findFirst()
+                                                   .orElse(null);
         if (role == null) {
             return new ArrayList<>();
         }
-        // 返回该角色对应的权限列表
         return role.getPermissions();
     }
 
     /**
-     * 获取空间权限列表
+     * 获取空间权限列表（通过 HttpServletRequest，适用于普通 HTTP 请求）
      *
      * @param space   空间对象
      * @param request 用户请求
-     * @return 返回空间的权限列表，如果空间或用户为空则返回空列表
+     * @return 返回空间的权限列表
      */
     public List<String> getPermissionList(Space space, HttpServletRequest request) {
-        // 判断空间是否为空，如果为空则返回空列表
+        // 从 request 中解析当前登录用户，再委托给重载方法
         User loginUser = userService.getCurrentUser(request);
-        // 判断用户是否为空，如果为空则返回空列表
+        return getPermissionList(space, loginUser);
+    }
+
+    /**
+     * 获取空间权限列表（直接传入 User，适用于 WebSocket 握手等无法读取请求头的场景）
+     *
+     * @param space     空间对象
+     * @param loginUser 已解析好的登录用户
+     * @return 返回空间的权限列表，如果用户为空则返回空列表
+     */
+    public List<String> getPermissionList(Space space, User loginUser) {
         if (loginUser == null) {
             return new ArrayList<>();
         }
-        // 管理员权限
-        // 管理员权限列表
         List<String> ADMIN_PERMISSIONS = getPermissionsByRole(SpaceRoleEnum.ADMIN.getValue());
-        // 公共图库权限
+        // 公共图库（无空间）
         if (space == null) {
             if (userService.isAdmin(loginUser.getId())) {
                 return ADMIN_PERMISSIONS;
@@ -98,7 +98,7 @@ public class SpaceUserAuthManager {
         if (spaceTypeEnum == null) {
             return new ArrayList<>();
         }
-        // 根据空间获取对应的权限
+        // 根据空间类型获取对应的权限
         switch (spaceTypeEnum) {
             case PRIVATE:
                 // 私有空间，仅本人或管理员有所有权限

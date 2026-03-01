@@ -1,40 +1,40 @@
-# ==================== 数据源配置 ====================
-databaseName: smart_picture
-
-dataSources:
-  smart_picture: # 逻辑数据源名称，可随意命名
-    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
-    driverClassName: com.mysql.cj.jdbc.Driver
-    jdbcUrl: jdbc:mysql://localhost:3307/smart_picture?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8
-    username: root
-    password: 1234
-
-# ==================== 分片规则配置 ====================
-rules:
-  - !SHARDING
-    tables:
-      picture: # 逻辑表名
-        actualDataNodes: smart_picture.picture  # 动态分表，实际节点由自定义算法决定
-        tableStrategy:
-          standard:
-            shardingColumn: spaceId  # 分片键
-            shardingAlgorithmName: picture_sharding_algorithm  # 对应下方算法名
-    shardingAlgorithms:
-      picture_sharding_algorithm:
-        type: CLASS_BASED
-        props:
-          strategy: standard
-          # 注意：这里要改成你新项目的包名路径！
-          algorithmClassName: com.hbpu.smartpicture.manager.sharding.PictureShardingAlgorithm
-
-  # 未参与分片的其他表，全部路由到默认数据源，非常重要！
-  - !SINGLE
-    tables:
-      - "smart_picture.space"
-      - "smart_picture.user"
-      - "smart_picture.space_user"
-
-# ==================== 全局属性 ====================
-props:
-  sql-show: true  # 打印路由后实际执行的 SQL，调试完成后可改为 false
-  table-exists-check-mode: NONE  # ⭐ 添加这行，跳过表存在性检查
+## ==================== 数据源配置 ====================
+#databaseName: smart_picture
+#
+#dataSources:
+#  smart_picture: # 逻辑数据源名称，可随意命名
+#    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+#    driverClassName: com.mysql.cj.jdbc.Driver
+#    jdbcUrl: jdbc:mysql://localhost:3307/smart_picture?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&useUnicode=true&characterEncoding=UTF-8
+#    username: root
+#    password: 1234
+#
+## ==================== 分片规则配置 ====================
+#rules:
+#  - !SHARDING
+#    tables:
+#      picture: # 逻辑表名
+#        actualDataNodes: smart_picture.picture  # 动态分表，实际节点由自定义算法决定
+#        tableStrategy:
+#          standard:
+#            shardingColumn: spaceId  # 分片键
+#            shardingAlgorithmName: picture_sharding_algorithm  # 对应下方算法名
+#    shardingAlgorithms:
+#      picture_sharding_algorithm:
+#        type: CLASS_BASED
+#        props:
+#          strategy: standard
+#          # 注意：这里要改成你新项目的包名路径！
+#          algorithmClassName: com.hbpu.smartpicture.manager.sharding.PictureShardingAlgorithm
+#
+#  # 未参与分片的其他表，全部路由到默认数据源，非常重要！
+#  - !SINGLE
+#    tables:
+#      - "smart_picture.space"
+#      - "smart_picture.user"
+#      - "smart_picture.space_user"
+#
+## ==================== 全局属性 ====================
+#props:
+#  sql-show: true  # 打印路由后实际执行的 SQL，调试完成后可改为 false
+#  table-exists-check-mode: NONE  # ⭐ 添加这行，跳过表存在性检查
