@@ -146,10 +146,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 创建一个Map
         RMapCache<Object, Object> mapCache = redisson.getMapCache(redisKey);
         // 设置其值
-        mapCache.put("token", token, 30, TimeUnit.MINUTES);
-        mapCache.put("object", user, 30, TimeUnit.MINUTES);
+//        mapCache.put("token", token, 30, TimeUnit.MINUTES);
+//        mapCache.put("object", user, 30, TimeUnit.MINUTES);
+        // 修改后（7天）：
+        mapCache.put("token", token, 7, TimeUnit.DAYS);
+        mapCache.put("object", user, 7, TimeUnit.DAYS);
         // 登录成功并设置过期时间
-        StpKit.SPACE.login(user.getId(), 30 * 60);
+//        StpKit.SPACE.login(user.getId(), 30 * 60);
+        // 修改后（7天 = 7 * 24 * 60 * 60秒）：
+        StpKit.SPACE.login(user.getId(), 7 * 24 * 60 * 60);
         StpKit.SPACE.getSession().set("user", user);
         // ↓ 新增：将 space-token 也返回给前端
         String spaceToken = StpKit.SPACE.getTokenValue();
